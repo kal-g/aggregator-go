@@ -1,11 +1,10 @@
 # Aggregator
 
 TODOs
-- Make ready endpoint
 - Make HTTP server worker pool / multithreaded
+- Make ready endpoint
 - Add HTTP server
     - count
-- Namespaces
 - Auto connecting master nodes
     - Consul?
 - Finish Validator

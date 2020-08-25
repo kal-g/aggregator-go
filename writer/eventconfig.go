@@ -1,27 +1,28 @@
 package aggregator
 
-type EventConfig struct {
+type eventConfig struct {
 	Name   string
-	Id     int
-	Fields map[string]FieldType
+	ID     int
+	Fields map[string]fieldType
 }
 
 // TODO Add logging on nil returns here
-func (ec EventConfig) Validate(re map[string]interface{}) *Event {
+// Validate makes sure that this is a valid event, based on names and types
+// After conversion to event, typing is guaranteed
+func (ec eventConfig) validate(re map[string]interface{}) *event {
 	// We have to have an id, it has to be an int, and it has to match
-	idRaw, hasId := re["id"]
+	idRaw, hasID := re["id"]
 	idTyped := 0
 	isInt := false
-	if !hasId {
+	if !hasID {
 		return nil
-	} else {
-		idTyped, isInt = idRaw.(int)
-		if !isInt {
-			return nil
-		}
-		if idTyped != ec.Id {
-			return nil
-		}
+	}
+	idTyped, isInt = idRaw.(int)
+	if !isInt {
+		return nil
+	}
+	if idTyped != ec.ID {
+		return nil
 	}
 	// Make sure number of fields matches
 	// The raw event includes id, so it should have an extra field
@@ -37,12 +38,12 @@ func (ec EventConfig) Validate(re map[string]interface{}) *Event {
 		}
 		// If it exists, check the type matches
 		switch fieldType {
-		case StringField:
+		case stringField:
 			_, isString := fieldTypeRaw.(string)
 			if !isString {
 				return nil
 			}
-		case IntField:
+		case intField:
 			_, isInt := fieldTypeRaw.(int)
 			if !isInt {
 				return nil
@@ -50,8 +51,8 @@ func (ec EventConfig) Validate(re map[string]interface{}) *Event {
 		}
 	}
 	delete(re, "id")
-	return &Event{
-		Id:   idTyped,
+	return &event{
+		ID:   idTyped,
 		Data: re,
 	}
 }

@@ -19,7 +19,7 @@ func getPayload() map[string]interface{} {
 	v["id"] = 1
 	v["test1"] = 2
 	v["test2"] = 2
-	v["test3"] = 2
+	v["test3"] = 1
 	v["test4"] = 2
 	return v
 }
@@ -29,6 +29,7 @@ func main() {
 	url := "http://localhost:50051/consume"
 	bodyJSON := make(map[string]interface{})
 	bodyJSON["payload"] = getPayload()
+	bodyJSON["namespace"] = "test"
 	bodyJSON["verbose"] = true
 	bodyData, _ := json.Marshal(bodyJSON)
 

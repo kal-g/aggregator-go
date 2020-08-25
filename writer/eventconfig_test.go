@@ -1,16 +1,16 @@
-package aggregator_test
+package aggregator
 
 import (
 	"testing"
 
-	. "github.com/kal-g/aggregator-go/writer"
+	ct "github.com/kal-g/aggregator-go/common_test"
 )
 
 func TestEventIdValidation(t *testing.T) {
-	ec := EventConfig{
+	ec := eventConfig{
 		Name:   "testEvent",
-		Id:     1,
-		Fields: map[string]FieldType{},
+		ID:     1,
+		Fields: map[string]fieldType{},
 	}
 
 	// Create events
@@ -18,18 +18,18 @@ func TestEventIdValidation(t *testing.T) {
 	re2 := map[string]interface{}{"id": 2}
 
 	// Validate events
-	v1 := ec.Validate(re1)
-	v2 := ec.Validate(re2)
+	v1 := ec.validate(re1)
+	v2 := ec.validate(re2)
 
-	var nil_event *Event
-	valid_event := new(Event)
-	valid_event.Id = 1
+	var nilEvent *event
+	validEvent := new(event)
+	validEvent.ID = 1
 
-	AssertEqual(t, v1.Id, valid_event.Id)
+	ct.AssertEqual(t, v1.ID, validEvent.ID)
 	for k, v := range v1.Data {
-		AssertEqual(t, v, valid_event.Data[k])
+		ct.AssertEqual(t, v, validEvent.Data[k])
 	}
-	AssertEqual(t, v2, nil_event)
+	ct.AssertEqual(t, v2, nilEvent)
 }
 
 /*
@@ -51,67 +51,67 @@ TEST_CASE("Validate number of fields") {
 
 func TestValidateNumberOfFields(t *testing.T) {
 	// Create config
-	ec := EventConfig{
+	ec := eventConfig{
 		Name: "testEvent",
-		Id:   1,
-		Fields: map[string]FieldType{
-			"testField1": StringField,
+		ID:   1,
+		Fields: map[string]fieldType{
+			"testField1": stringField,
 		},
 	}
 
 	// Create event to validate
-	valid_event := map[string]interface{}{
+	validEvent := map[string]interface{}{
 		"id":         1,
 		"testField1": "testValue",
 	}
-	invalid_event := map[string]interface{}{
+	invalidEvent := map[string]interface{}{
 		"id":         1,
 		"testField1": "testValue",
 		"testField2": "testValue",
 	}
 
 	// Check
-	var nil_event *Event
-	v1 := ec.Validate(valid_event)
-	v2 := ec.Validate(invalid_event)
+	var nilEvent *event
+	v1 := ec.validate(validEvent)
+	v2 := ec.validate(invalidEvent)
 
-	valid_event_e := new(Event)
-	valid_event_e.Id = 1
-	valid_event_e.Data = map[string]interface{}{}
+	validEventE := new(event)
+	validEventE.ID = 1
+	validEventE.Data = map[string]interface{}{}
 
-	for k, v := range valid_event {
-		valid_event_e.Data[k] = v
+	for k, v := range validEvent {
+		validEventE.Data[k] = v
 	}
-	delete(valid_event_e.Data, "id")
+	delete(validEventE.Data, "id")
 
-	AssertEqual(t, v1, valid_event_e)
-	AssertEqual(t, v2, nil_event)
+	ct.AssertEqual(t, v1, validEventE)
+	ct.AssertEqual(t, v2, nilEvent)
 }
 
 func TestValidateFieldTypes(t *testing.T) {
-	ec := EventConfig{
+	ec := eventConfig{
 		Name: "testEvent",
-		Id:   1,
-		Fields: map[string]FieldType{
-			"testField1": StringField,
-			"testField2": StringField,
-			"testField3": IntField,
+		ID:   1,
+		Fields: map[string]fieldType{
+			"testField1": stringField,
+			"testField2": stringField,
+			"testField3": intField,
 		},
 	}
 
-	valid_event := map[string]interface{}{
+	validEvent := map[string]interface{}{
 		"id":         1,
 		"testField1": "testValue",
 		"testField2": "testValue",
 		"testField3": 0,
 	}
-	invalid_event_1 := map[string]interface{}{
+	invalidEvent1 := map[string]interface{}{
 		"id":         1,
 		"testField1": "testValue",
 		"testField2": 0,
 		"testField3": 0,
 	}
-	invalid_event_2 := map[string]interface{}{
+	invalidEvent2 := map[string]interface{}{
 		"id":         1,
 		"testField1": "testValue",
 		"testField2": "testValue",
@@ -119,25 +119,25 @@ func TestValidateFieldTypes(t *testing.T) {
 	}
 
 	// Validate events
-	v1 := ec.Validate(valid_event)
-	v2 := ec.Validate(invalid_event_1)
-	v3 := ec.Validate(invalid_event_2)
+	v1 := ec.validate(validEvent)
+	v2 := ec.validate(invalidEvent1)
+	v3 := ec.validate(invalidEvent2)
 
-	var nil_event *Event
-	valid_event_e := new(Event)
-	valid_event_e.Id = 1
-	valid_event_e.Data = map[string]interface{}{}
+	var nilEvent *event
+	validEventE := new(event)
+	validEventE.ID = 1
+	validEventE.Data = map[string]interface{}{}
 
-	for k, v := range valid_event {
-		valid_event_e.Data[k] = v
+	for k, v := range validEvent {
+		validEventE.Data[k] = v
 	}
-	delete(valid_event_e.Data, "id")
+	delete(validEventE.Data, "id")
 
-	AssertEqual(t, v1.Id, valid_event_e.Id)
+	ct.AssertEqual(t, v1.ID, validEventE.ID)
 	for k, v := range v1.Data {
-		AssertEqual(t, v, valid_event_e.Data[k])
+		ct.AssertEqual(t, v, validEventE.Data[k])
 
 	}
-	AssertEqual(t, v2, nil_event)
-	AssertEqual(t, v3, nil_event)
+	ct.AssertEqual(t, v2, nilEvent)
+	ct.AssertEqual(t, v3, nilEvent)
 }

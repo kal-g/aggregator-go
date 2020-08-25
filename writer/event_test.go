@@ -1,19 +1,19 @@
-package aggregator_test
+package aggregator
 
 import (
 	"testing"
 
-	. "github.com/kal-g/aggregator-go/writer"
+	ct "github.com/kal-g/aggregator-go/common_test"
 )
 
 func TestEvent(t *testing.T) {
 	re1 := map[string]interface{}{"dataField1": 1, "dataField2": "test", "dataField3": 3}
-	e := Event{
-		Id:   0,
+	e := event{
+		ID:   0,
 		Data: re1,
 	}
 
-	AssertEqual(t, e.GetDataField("dataField1"), 1)
-	AssertEqual(t, e.GetDataField("dataField2"), "test")
-	AssertEqual(t, e.GetDataField("dataField3"), 3)
+	ct.AssertEqual(t, e.GetDataField("dataField1"), 1)
+	ct.AssertEqual(t, e.GetDataField("dataField2"), "test")
+	ct.AssertEqual(t, e.GetDataField("dataField3"), 3)
 }

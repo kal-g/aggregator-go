@@ -4,61 +4,63 @@ import (
 	"strconv"
 )
 
-type MetricConfig struct {
-	Id         int
+type metricConfig struct {
+	ID         int
 	Name       string
 	EventIds   []int
 	KeyField   string
 	CountField string
-	MetricType MetricType
-	Filter     AbstractFilter
+	MetricType metricType
+	Namespace  string
+	Filter     abstractFilter
 	Storage    AbstractStorage
 }
 
-func (mc MetricConfig) HandleEvent(event Event) MetricHandleResult {
+func (mc metricConfig) handleEvent(event event) metricHandleResult {
 
 	// Can assume that event is of the right type
 	// Check that the event passes the filter
 	if !mc.Filter.IsValid(event) {
-		return FailedFilter
+		return failedFilter
 	}
 
 	// Get metric from storage, or initialize if it doesn't exist
-	mc.Storage.Lock()
+	mc.Storage.Lock(mc.Namespace)
 
-	storage_key := mc.getMetricKey(event)
-	r := mc.Storage.Get(storage_key)
+	storageKey := mc.getMetricKey(event, mc.Namespace)
+	r := mc.Storage.Get(storageKey)
 
-	initial_value := int(0)
+	initialValue := int(0)
 	if r.ErrCode == 0 {
-		initial_value = r.Value
+		initialValue = r.Value
 	}
 
-	metric := mc.initMetricByType(initial_value)
+	metric := mc.initMetricByType(initialValue)
 
 	// Determine how much to increment metric by
-	increment_by := int(1)
+	incrementBy := int(1)
 	if mc.CountField != "" {
-		increment_by = event.GetDataField(mc.CountField).(int)
+		incrementBy = event.GetDataField(mc.CountField).(int)
 	}
 
 	// Increment the metric
-	metric.Increment(increment_by)
+	metric.Increment(incrementBy)
 
 	// Put back in storage
-	mc.Storage.Put(storage_key, metric.GetValue())
-	mc.Storage.Unlock()
-	return NoError
+	mc.Storage.Put(storageKey, metric.GetValue())
+	mc.Storage.Unlock(mc.Namespace)
+	return noError
 
 }
 
-func (mc MetricConfig) getMetricKey(event Event) string {
+func (mc metricConfig) getMetricKey(event event, namespace string) string {
 	// Key of a metric is the id + the type + the key field
-	return strconv.Itoa(mc.Id) + ":" + strconv.Itoa(event.GetDataField(mc.KeyField).(int))
+	mk := namespace + ":" + strconv.Itoa(mc.ID) + ":" + strconv.Itoa(event.GetDataField(mc.KeyField).(int))
+	return mk
 }
 
-func (mc MetricConfig) initMetricByType(val int) AbstractMetric {
-	return &CountMetric{
+func (mc metricConfig) initMetricByType(val int) abstractMetric {
+	return &countMetric{
 		count: val,
 	}
 }
