@@ -1,0 +1,4 @@
+scratch
+bin/*
+client_logs
+writer_logs
