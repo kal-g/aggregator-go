@@ -13,7 +13,7 @@ done
 for pid in ${pids[*]}; do
     wait $pid
 done
-
+sleep 1
 namespaceCount=`./bin/storage_reader test:1:2`
 if [[ $namespaceCount -ne 10000 ]]
 then
