@@ -1,6 +1,5 @@
 package common_test
 
-//import . "github.com/stretchr/testify/assert"
 import (
 	"reflect"
 	"testing"
