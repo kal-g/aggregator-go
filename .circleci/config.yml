@@ -1,0 +1,12 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: kalgg/aggregator-go-primary:0.0.1
+    working_directory: /go/src/github.com/kal-g/aggregator-go
+    steps:
+      - checkout
+      - run: go get -v -t -d ./...
+      - run: make test
+      - run: make e2e_test
+      - run: make benchmark
