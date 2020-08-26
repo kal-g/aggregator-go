@@ -2,105 +2,108 @@ package aggregator
 
 import "encoding/json"
 
-type ConfigParser struct {
-	EventConfigs  []EventConfig
-	MetricConfigs []MetricConfig
+type configParser struct {
+	EventConfigs  []eventConfig
+	MetricConfigs []metricConfig
 	storage       AbstractStorage
 }
 
-func NewConfigParserFromRaw(input_string []byte, storage AbstractStorage) ConfigParser {
+func newConfigParserFromRaw(input []byte, storage AbstractStorage) configParser {
 	var doc map[string]interface{}
-	json.Unmarshal(input_string, &doc)
+	json.Unmarshal(input, &doc)
 
-	return ConfigParser{extractEventConfigs(doc), extractMetricConfigs(doc, storage), storage}
+	return configParser{extractEventConfigs(doc), extractMetricConfigs(doc, storage), storage}
 }
 
-func NewConfigParserFromConfigs(event_configs []EventConfig, metric_configs []MetricConfig, storage AbstractStorage) ConfigParser {
-	return ConfigParser{
-		EventConfigs:  event_configs,
-		MetricConfigs: metric_configs,
+func newConfigParserFromConfigs(ecs []eventConfig, mcs []metricConfig, storage AbstractStorage) configParser {
+	return configParser{
+		EventConfigs:  ecs,
+		MetricConfigs: mcs,
 		storage:       storage,
 	}
 }
 
-func (cp ConfigParser) GetEventConfigs() []EventConfig {
+func (cp configParser) getEventConfigs() []eventConfig {
 	return cp.EventConfigs
 }
 
-func (cp ConfigParser) GetMetricConfigs() []MetricConfig {
+func (cp configParser) getMetricConfigs() []metricConfig {
 	return cp.MetricConfigs
 }
 
-func extractEventConfigs(doc map[string]interface{}) []EventConfig {
-	raw_event_configs := doc["events"].([]interface{})
-	event_configs := []EventConfig{}
-	for _, raw_event_config := range raw_event_configs {
-		raw_event_config := raw_event_config.(map[string]interface{})
+func extractEventConfigs(doc map[string]interface{}) []eventConfig {
+	reConfigs := doc["events"].([]interface{})
+	eConfigs := []eventConfig{}
+	for _, reConfig := range reConfigs {
+		reConfig := reConfig.(map[string]interface{})
 		// Get the initializers for the event config
-		name := raw_event_config["name"].(string)
-		id := int(raw_event_config["id"].(float64))
-		raw_fields := raw_event_config["fields"].(map[string]interface{})
-		fields := map[string]FieldType{}
-		for field_name, field_type := range raw_fields {
-			fields[field_name] = FieldType(field_type.(float64))
+		name := reConfig["name"].(string)
+		id := int(reConfig["id"].(float64))
+		rFields := reConfig["fields"].(map[string]interface{})
+		fields := map[string]fieldType{}
+		for fName, fType := range rFields {
+			fields[fName] = fieldType(fType.(float64))
 		}
 		// Create event config
-		event_config := EventConfig{
+		ec := eventConfig{
 			Name:   name,
-			Id:     id,
+			ID:     id,
 			Fields: fields,
 		}
-		event_configs = append(event_configs, event_config)
+		eConfigs = append(eConfigs, ec)
 	}
-	return event_configs
+	return eConfigs
 }
 
-func extractMetricConfigs(doc map[string]interface{}, storage AbstractStorage) []MetricConfig {
-	raw_metric_configs := doc["metrics"].([]interface{})
-	metric_configs := []MetricConfig{}
-	for _, raw_metric_config := range raw_metric_configs {
-		raw_metric_config := raw_metric_config.(map[string]interface{})
+func extractMetricConfigs(doc map[string]interface{}, storage AbstractStorage) []metricConfig {
+	rmConfigs := doc["metrics"].([]interface{})
+	mConfigs := []metricConfig{}
+	for _, rmConfig := range rmConfigs {
+		rmConfig := rmConfig.(map[string]interface{})
 		// Get the initializers for the metric config
-		name := raw_metric_config["name"].(string)
-		id := int(raw_metric_config["id"].(float64))
-		key_field := raw_metric_config["key_field"].(string)
+		name := rmConfig["name"].(string)
+		id := int(rmConfig["id"].(float64))
+		keyField := rmConfig["key_field"].(string)
+		namespace := rmConfig["namespace"].(string)
+		// TODO Replace when adding other types
 		//metric_type := raw_metric_config["type"].(string)
-		count_field := raw_metric_config["count_field"].(string)
-		raw_event_ids := raw_metric_config["event_ids"].([]interface{})
-		event_ids := []int{}
-		for _, event_id := range raw_event_ids {
-			event_ids = append(event_ids, int(event_id.(float64)))
+		countField := rmConfig["count_field"].(string)
+		reIDs := rmConfig["event_ids"].([]interface{})
+		eIDs := []int{}
+		for _, eID := range reIDs {
+			eIDs = append(eIDs, int(eID.(float64)))
 		}
 		// Create metric config
-		metric_config := MetricConfig{
-			Id:         id,
+		mc := metricConfig{
+			ID:         id,
 			Name:       name,
-			EventIds:   event_ids,
-			KeyField:   key_field,
-			CountField: count_field,
-			MetricType: CountMetricType,
-			Filter:     extractMetricFilters(raw_metric_config["filter"].([]interface{})),
+			EventIds:   eIDs,
+			KeyField:   keyField,
+			CountField: countField,
+			MetricType: countMetricType,
+			Namespace:  namespace,
+			Filter:     extractMetricFilters(rmConfig["filter"].([]interface{})),
 			Storage:    storage,
 		}
-		metric_configs = append(metric_configs, metric_config)
+		mConfigs = append(mConfigs, mc)
 	}
-	return metric_configs
+	return mConfigs
 }
 
-func extractMetricFilters(filt []interface{}) AbstractFilter {
+func extractMetricFilters(filt []interface{}) abstractFilter {
 	// Name is always the first element
-	var f AbstractFilter
-	filter_name := filt[0].(string)
-	if filter_name == "null" {
+	var f abstractFilter
+	filterName := filt[0].(string)
+	if filterName == "null" {
 		f = NullFilter{}
-	} else if filter_name == "gt" {
-		f = GreaterThanFilter{filt[1].(string), int(filt[2].(float64))}
-	} else if filter_name == "all" {
-		filters := []AbstractFilter{}
+	} else if filterName == "gt" {
+		f = greaterThanFilter{filt[1].(string), int(filt[2].(float64))}
+	} else if filterName == "all" {
+		filters := []abstractFilter{}
 		for i := 1; i < len(filt); i++ {
 			filters = append(filters, extractMetricFilters(filt[i].([]interface{})))
 		}
-		f = AllFilter{filters}
+		f = allFilter{filters}
 	}
 	return f
 }

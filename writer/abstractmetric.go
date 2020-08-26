@@ -1,6 +1,6 @@
 package aggregator
 
-type AbstractMetric interface {
-	Increment(int) MetricHandleResult
+type abstractMetric interface {
+	Increment(int) metricHandleResult
 	GetValue() int
 }

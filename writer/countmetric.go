@@ -1,14 +1,14 @@
 package aggregator
 
-type CountMetric struct {
+type countMetric struct {
 	count int
 }
 
-func (m *CountMetric) Increment(val int) MetricHandleResult {
+func (m *countMetric) Increment(val int) metricHandleResult {
 	m.count += val
-	return NoError
+	return noError
 }
 
-func (m CountMetric) GetValue() int {
+func (m countMetric) GetValue() int {
 	return m.count
 }

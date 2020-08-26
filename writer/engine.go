@@ -1,77 +1,102 @@
 package aggregator
 
-import "fmt"
-
-type Engine struct {
-	EventMap  map[int]EventConfig
-	MetricMap map[int][]MetricConfig
-	Parser    *ConfigParser
+type engine struct {
+	EventMap  map[int]eventConfig
+	MetricMap map[string]map[int][]metricConfig
+	Parser    *configParser
 }
 
-func NewEngine(parser *ConfigParser) Engine {
-	event_map := make(map[int]EventConfig)
+func newEngine(parser *configParser) engine {
+	eventMap := make(map[int]eventConfig)
 	// Create a map from event id to event config
-	for _, event_config := range parser.GetEventConfigs() {
-		event_map[event_config.Id] = event_config
+	for _, eventConfig := range parser.getEventConfigs() {
+		eventMap[eventConfig.ID] = eventConfig
 	}
 
-	metric_map := make(map[int][]MetricConfig)
+	metricMap := make(map[string]map[int][]metricConfig)
 	// Create a map from event id to metric configs
-	for _, metric_config := range parser.GetMetricConfigs() {
-		for _, event_id := range metric_config.EventIds {
+	for _, mc := range parser.getMetricConfigs() {
+		// Init the namespace if it doesn't exist
+		_, namespaceExists := metricMap[mc.Namespace]
+		if !namespaceExists {
+			metricMap[mc.Namespace] = make(map[int][]metricConfig)
+		}
+		for _, eventID := range mc.EventIds {
 			// Initialize the slice if it doesn't exist
-			_, exists := metric_map[event_id]
-			if !exists {
-				metric_map[event_id] = []MetricConfig{}
+			_, metricExists := metricMap[mc.Namespace][eventID]
+			if !metricExists {
+				metricMap[mc.Namespace][eventID] = []metricConfig{}
 			}
-			metric_map[event_id] = append(metric_map[event_id], metric_config)
+			metricMap[mc.Namespace][eventID] = append(metricMap[mc.Namespace][eventID], mc)
 		}
 	}
 
-	return Engine{
-		EventMap:  event_map,
-		MetricMap: metric_map,
+	return engine{
+		EventMap:  eventMap,
+		MetricMap: metricMap,
 		Parser:    parser,
 	}
 }
 
-func (e Engine) HandleRawEvent(raw_event map[string]interface{}) EngineHandleResult {
+func (e engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string) engineHandleResult {
 	// Event must have an id to identify what event it is
-	id, id_exists := raw_event["id"]
-	if !id_exists {
-		fmt.Printf("Here 1\n")
-		return InvalidEventId
+	id, idExists := rawEvent["id"]
+	if !idExists {
+		return invalidEventID
 	}
 	// Id must be an int
-	id_typed, is_int := id.(int)
-	fmt.Printf("Thing %d\n", id)
-	if !is_int {
-		fmt.Printf("Here 2\n")
-		return InvalidEventId
+	idTyped, isInt := id.(int)
+	if !isInt {
+		return invalidEventID
 	}
 	// Get the config for the event
-	event_config, config_exists := e.EventMap[id_typed]
-	if !config_exists {
-		return EventConfigNotFound
+	eventConfig, configExists := e.EventMap[idTyped]
+	if !configExists {
+		return eventConfigNotFound
 	}
 	// Validate against the config
-	event := event_config.Validate(raw_event)
+	event := eventConfig.validate(rawEvent)
 	if event == nil {
-		return EventValidationFailed
+		return eventValidationFailed
 	}
-	return e.handleEvent(*event)
+	return e.handleEvent(*event, namespace)
 }
 
-func (e Engine) handleEvent(event Event) EngineHandleResult {
+func (e engine) handleEvent(event event, namespace string) engineHandleResult {
 	// Get the metric configs for this event
-	metric_configs, config_exists := e.MetricMap[event.Id]
-	if !config_exists {
-		return NoMetricsFound
+	metricConfigs := e.getMetricConfigs(event, namespace)
+	if len(metricConfigs) == 0 {
+		return noMetricsFound
 	}
 
 	// Handle this event for each of these metric configs
-	for _, metric_config := range metric_configs {
-		metric_config.HandleEvent(event)
+	for _, metricConfig := range metricConfigs {
+		metricConfig.handleEvent(event)
 	}
-	return Success
+	return success
+}
+
+func (e engine) getMetricConfigs(event event, namespace string) []metricConfig {
+	configs := []metricConfig{}
+
+	// First get all configs in global namespace
+	globalNamespace, globalNamespaceExists := e.MetricMap[""]
+	if globalNamespaceExists {
+		globalConfigs, globalConfigsExist := globalNamespace[event.ID]
+		if globalConfigsExist {
+			configs = append(configs, globalConfigs...)
+		}
+	}
+
+	// Then get all configs in the specified namespace
+	if namespace != "" {
+		specificNamespace, namespaceExists := e.MetricMap[namespace]
+		if namespaceExists {
+			namespaceConfigs, namespaceConfigsExist := specificNamespace[event.ID]
+			if namespaceConfigsExist {
+				configs = append(configs, namespaceConfigs...)
+			}
+		}
+	}
+	return configs
 }

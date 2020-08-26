@@ -14,16 +14,25 @@ for pid in ${pids[*]}; do
     wait $pid
 done
 
-count=`./bin/storage_reader`
-if [[ $count -ne 20000 ]]
+namespaceCount=`./bin/storage_reader test:1:2`
+if [[ $namespaceCount -ne 10000 ]]
 then
-  echo "Count was " $count
+  echo "Namespace count was " $namespaceCount
   pkill -f aggregator
   rm -rf rocksdb_storage
   exit 1
-else
-  echo "Test passed"
 fi
+
+globalCount=`./bin/storage_reader :1:2`
+if [[ $globalCount -ne 20000 ]]
+then
+  echo "Global count was " $globalCount
+  pkill -f aggregator
+  rm -rf rocksdb_storage
+  exit 1
+fi
+
+echo "Test passed"
 
 M=`pgrep go_writer`
 if [ `echo $M` ]

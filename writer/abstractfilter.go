@@ -1,5 +1,5 @@
 package aggregator
 
-type AbstractFilter interface {
-    IsValid(Event) bool
+type abstractFilter interface {
+	IsValid(event) bool
 }

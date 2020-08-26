@@ -1,10 +1,10 @@
 package aggregator
 
-type Event struct {
-	Id   int
+type event struct {
+	ID   int
 	Data map[string]interface{}
 }
 
-func (e Event) GetDataField(field string) Value {
+func (e event) GetDataField(field string) value {
 	return e.Data[field]
 }

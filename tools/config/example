@@ -8,12 +8,29 @@
             ],
             "key_field": "test1",
             "type": "count",
+            "namespace": "",
             "filter": [
               "all",
               ["gt","test1",1],
               ["gt","test2",1]
             ],
-            "count_field": "test2"
+            "count_field": "test1"
+        },
+        {
+            "id": 1,
+            "name": "testMetric",
+            "event_ids": [
+                1
+            ],
+            "key_field": "test1",
+            "type": "count",
+            "namespace": "test",
+            "filter": [
+              "all",
+              ["gt","test1",1],
+              ["gt","test2",1]
+            ],
+            "count_field": "test3"
         }
     ],
     "events": [

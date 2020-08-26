@@ -1,13 +1,16 @@
 package aggregator
 
+// StorageResult is the wrapper for getting values from storagge
 type StorageResult struct {
 	Value   int
 	ErrCode int
 }
 
+// AbstractStorage is the storage interface
+// Should be threadsafe via lock / unlock
 type AbstractStorage interface {
 	Get(string) StorageResult
 	Put(string, int)
-	Lock()
-	Unlock()
+	Lock(string)
+	Unlock(string)
 }

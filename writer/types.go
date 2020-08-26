@@ -1,31 +1,31 @@
 package aggregator
 
-type MetricType int32
-type FieldType int32
-type EngineHandleResult int32
-type MetricHandleResult int32
+type metricType int32
+type fieldType int32
+type engineHandleResult int32
+type metricHandleResult int32
 
 const (
-	CountMetricType MetricType = 0
+	countMetricType metricType = 0
 )
 
 const (
-	StringField FieldType = 0
-	IntField    FieldType = 1
+	stringField fieldType = 0
+	intField    fieldType = 1
 )
 
 const (
-	Success               EngineHandleResult = 0
-	NoMetricsFound        EngineHandleResult = 1
-	EventValidationFailed EngineHandleResult = 2
-	EventConfigNotFound   EngineHandleResult = 3
-	InvalidEventId        EngineHandleResult = 4
+	success               engineHandleResult = 0
+	noMetricsFound        engineHandleResult = 1
+	eventValidationFailed engineHandleResult = 2
+	eventConfigNotFound   engineHandleResult = 3
+	invalidEventID        engineHandleResult = 4
 )
 
 const (
-	NoError      MetricHandleResult = 0
-	FailedFilter MetricHandleResult = 1
+	noError      metricHandleResult = 0
+	failedFilter metricHandleResult = 1
 )
 
-type Value interface{}
-type RawEvent map[string]Value
+type value interface{}
+type rawEvent map[string]value

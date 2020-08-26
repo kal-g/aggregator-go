@@ -1,29 +1,29 @@
-package aggregator_test
+package aggregator
 
 import (
 	"testing"
 
-	. "github.com/kal-g/aggregator-go/writer"
+	ct "github.com/kal-g/aggregator-go/common_test"
 )
 
 func TestGreaterThanFilter(t *testing.T) {
-	gt := GreaterThanFilter{
+	gt := greaterThanFilter{
 		Key:   "dataField1",
 		Value: 0,
 	}
 
 	re1 := map[string]interface{}{"dataField1": 1}
-	valid_event := Event{
-		Id:   0,
+	validEvent := event{
+		ID:   0,
 		Data: re1,
 	}
 
 	re2 := map[string]interface{}{"dataField1": -1}
-	invalid_event := Event{
-		Id:   0,
+	invalidEvent := event{
+		ID:   0,
 		Data: re2,
 	}
 
-	AssertEqual(t, gt.IsValid(valid_event), true)
-	AssertEqual(t, gt.IsValid(invalid_event), false)
+	ct.AssertEqual(t, gt.IsValid(validEvent), true)
+	ct.AssertEqual(t, gt.IsValid(invalidEvent), false)
 }

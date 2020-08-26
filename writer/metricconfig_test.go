@@ -1,139 +1,139 @@
-package aggregator_test
+package aggregator
 
 import (
 	"testing"
 
-	. "github.com/kal-g/aggregator-go/writer"
+	ct "github.com/kal-g/aggregator-go/common_test"
 )
 
 func TestFilterValidation(t *testing.T) {
-	event_ids := []int{1}
-	filter := GreaterThanFilter{
+	eIDs := []int{1}
+	filter := greaterThanFilter{
 		Key:   "filterKey",
 		Value: 0,
 	}
-	storage := NewNaiveStorage()
-	config := MetricConfig{
-		Id:         1,
+	storage := newNaiveStorage()
+	config := metricConfig{
+		ID:         1,
 		Name:       "testConfig",
-		EventIds:   event_ids,
+		EventIds:   eIDs,
 		KeyField:   "key",
 		CountField: "",
-		MetricType: CountMetricType,
+		MetricType: countMetricType,
 		Filter:     filter,
 		Storage:    storage,
 	}
 
 	// Create events
-	valid_event := Event{
-		Id:   0,
+	validEvent := event{
+		ID:   0,
 		Data: map[string]interface{}{"key": 1234, "filterKey": 1},
 	}
-	invalid_event := Event{
-		Id:   0,
+	invalidEvent := event{
+		ID:   0,
 		Data: map[string]interface{}{"key": 1234, "filterKey": -1},
 	}
 
-	AssertEqual(t, config.HandleEvent(valid_event), NoError)
-	AssertEqual(t, config.HandleEvent(invalid_event), FailedFilter)
+	ct.AssertEqual(t, config.handleEvent(validEvent), noError)
+	ct.AssertEqual(t, config.handleEvent(invalidEvent), failedFilter)
 
 }
 
 func TestMetricStorageInit(t *testing.T) {
-	event_ids := []int{1}
+	eIDs := []int{1}
 	filter := NullFilter{}
-	storage := NewNaiveStorage()
-	config := MetricConfig{
-		Id:         1,
+	storage := newNaiveStorage()
+	config := metricConfig{
+		ID:         1,
 		Name:       "testConfig",
-		EventIds:   event_ids,
+		EventIds:   eIDs,
 		KeyField:   "key",
 		CountField: "",
-		MetricType: CountMetricType,
+		MetricType: countMetricType,
 		Filter:     filter,
 		Storage:    storage,
 	}
 
 	// Create event
-	event := Event{
-		Id:   0,
+	event := event{
+		ID:   0,
 		Data: map[string]interface{}{"key": 1234},
 	}
 
-	config.HandleEvent(event)
+	config.handleEvent(event)
 
 	// Metric 1, for key 1234
-	storage_result := storage.Get("1:1234")
+	sr := storage.Get(":1:1234")
 
-	AssertEqual(t, storage_result.ErrCode, 0)
-	AssertEqual(t, storage_result.Value, 1)
+	ct.AssertEqual(t, sr.ErrCode, 0)
+	ct.AssertEqual(t, sr.Value, 1)
 }
 
 func TestMetricStateMaintained(t *testing.T) {
-	event_ids := []int{1}
+	eIDs := []int{1}
 	filter := NullFilter{}
-	storage := NewNaiveStorage()
-	config := MetricConfig{
-		Id:         1,
+	storage := newNaiveStorage()
+	config := metricConfig{
+		ID:         1,
 		Name:       "testConfig",
-		EventIds:   event_ids,
+		EventIds:   eIDs,
 		KeyField:   "key",
 		CountField: "",
-		MetricType: CountMetricType,
+		MetricType: countMetricType,
 		Filter:     filter,
 		Storage:    storage,
 	}
 
 	// Create event
-	event := Event{
-		Id:   0,
+	event := event{
+		ID:   0,
 		Data: map[string]interface{}{"key": 1234},
 	}
 
-	config.HandleEvent(event)
-	storage_result_1 := storage.Get("1:1234")
-	AssertEqual(t, storage_result_1.ErrCode, 0)
-	AssertEqual(t, storage_result_1.Value, 1)
+	config.handleEvent(event)
+	sr1 := storage.Get(":1:1234")
+	ct.AssertEqual(t, sr1.ErrCode, 0)
+	ct.AssertEqual(t, sr1.Value, 1)
 
-	config.HandleEvent(event)
-	storage_result_2 := storage.Get("1:1234")
-	AssertEqual(t, storage_result_2.ErrCode, 0)
-	AssertEqual(t, storage_result_2.Value, 2)
+	config.handleEvent(event)
+	sr2 := storage.Get(":1:1234")
+	ct.AssertEqual(t, sr2.ErrCode, 0)
+	ct.AssertEqual(t, sr2.Value, 2)
 
 }
 
 func TestIncDecWithCountKey(t *testing.T) {
-	event_ids := []int{1}
+	eIDs := []int{1}
 	filter := NullFilter{}
-	storage := NewNaiveStorage()
-	config := MetricConfig{
-		Id:         1,
+	storage := newNaiveStorage()
+	config := metricConfig{
+		ID:         1,
 		Name:       "testConfig",
-		EventIds:   event_ids,
+		EventIds:   eIDs,
 		KeyField:   "key",
 		CountField: "countKey",
-		MetricType: CountMetricType,
+		MetricType: countMetricType,
 		Filter:     filter,
 		Storage:    storage,
 	}
 
 	// Create events
-	event_1 := Event{
-		Id:   0,
+	e1 := event{
+		ID:   0,
 		Data: map[string]interface{}{"key": 1234, "countKey": 5},
 	}
-	event_2 := Event{
-		Id:   0,
+	e2 := event{
+		ID:   0,
 		Data: map[string]interface{}{"key": 1234, "countKey": -2},
 	}
 
-	config.HandleEvent(event_1)
-	storage_result_1 := storage.Get("1:1234")
-	AssertEqual(t, storage_result_1.ErrCode, 0)
-	AssertEqual(t, storage_result_1.Value, 5)
+	config.handleEvent(e1)
+	sr1 := storage.Get(":1:1234")
+	ct.AssertEqual(t, sr1.ErrCode, 0)
+	ct.AssertEqual(t, sr1.Value, 5)
 
-	config.HandleEvent(event_2)
-	storage_result_2 := storage.Get("1:1234")
-	AssertEqual(t, storage_result_2.ErrCode, 0)
-	AssertEqual(t, storage_result_2.Value, 3)
+	config.handleEvent(e2)
+	sr2 := storage.Get(":1:1234")
+	ct.AssertEqual(t, sr2.ErrCode, 0)
+	ct.AssertEqual(t, sr2.Value, 3)
 }

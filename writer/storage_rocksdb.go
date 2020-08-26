@@ -7,13 +7,14 @@ import (
 	"github.com/tecbot/gorocksdb"
 )
 
-type RocksDBStorage struct {
-	db  *gorocksdb.DB
-	mtx *sync.Mutex
+type rocksDBStorage struct {
+	db     *gorocksdb.DB
+	mtx    *sync.Mutex
+	mtxMap map[string]*sync.Mutex
 }
 
-func NewRocksDBStorage(path string) *RocksDBStorage {
-	var rdb RocksDBStorage
+func newRocksDBStorage(path string) *rocksDBStorage {
+	var rdb rocksDBStorage
 
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetCreateIfMissing(true)
@@ -24,10 +25,11 @@ func NewRocksDBStorage(path string) *RocksDBStorage {
 	}
 	rdb.db = db
 	rdb.mtx = &sync.Mutex{}
+	rdb.mtxMap = make(map[string]*sync.Mutex)
 	return &rdb
 }
 
-func (s RocksDBStorage) Get(key string) StorageResult {
+func (s rocksDBStorage) Get(key string) StorageResult {
 	val, err := s.db.Get(gorocksdb.NewDefaultReadOptions(), []byte(key))
 	if err != nil {
 		return StorageResult{Value: 0, ErrCode: 1}
@@ -41,14 +43,23 @@ func (s RocksDBStorage) Get(key string) StorageResult {
 	return StorageResult{Value: value, ErrCode: 0}
 }
 
-func (s RocksDBStorage) Put(key string, val int) {
+func (s rocksDBStorage) Put(key string, val int) {
 	s.db.Put(gorocksdb.NewDefaultWriteOptions(), []byte(key), []byte(strconv.Itoa(val)))
 }
 
-func (s RocksDBStorage) Lock() {
-	s.mtx.Lock()
+func (s rocksDBStorage) Lock(namespace string) {
+	mtx, mtxExists := s.mtxMap[namespace]
+	if !mtxExists {
+		s.mtx.Lock()
+		s.mtxMap[namespace] = &sync.Mutex{}
+		s.mtxMap[namespace].Lock()
+		s.mtx.Unlock()
+	} else {
+		mtx.Lock()
+	}
+
 }
 
-func (s RocksDBStorage) Unlock() {
-	s.mtx.Unlock()
+func (s rocksDBStorage) Unlock(namespace string) {
+	s.mtxMap[namespace].Unlock()
 }

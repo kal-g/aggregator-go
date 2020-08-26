@@ -1,18 +1,17 @@
 package aggregator
 
-type GreaterThanFilter struct {
+type greaterThanFilter struct {
 	Key   string
 	Value int
 }
 
-func (f GreaterThanFilter) IsValid(e Event) bool {
-	event_value, ok := e.GetDataField(f.Key).(int)
+func (f greaterThanFilter) IsValid(e event) bool {
+	eVal, ok := e.GetDataField(f.Key).(int)
 	if !ok {
 		panic("Invalid data field")
 	}
-	if event_value > f.Value {
+	if eVal > f.Value {
 		return true
-	} else {
-		return false
 	}
+	return false
 }

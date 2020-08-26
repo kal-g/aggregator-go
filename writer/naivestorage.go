@@ -2,34 +2,41 @@ package aggregator
 
 import "sync"
 
-type NaiveStorage struct {
+// NaiveStorage uses a simple go map
+// For testing only
+type naiveStorage struct {
 	data map[string]int
 	mtx  *sync.Mutex
 }
 
-func NewNaiveStorage() *NaiveStorage {
-	var ns NaiveStorage
+// NewNaiveStorage create storage
+func newNaiveStorage() *naiveStorage {
+	var ns naiveStorage
 	ns.data = make(map[string]int)
 	ns.mtx = &sync.Mutex{}
 	return &ns
 }
 
-func (s NaiveStorage) Get(key string) StorageResult {
-	val, key_exists := s.data[key]
-	if !key_exists {
+// Get value
+func (s naiveStorage) Get(key string) StorageResult {
+	val, keyExists := s.data[key]
+	if !keyExists {
 		return StorageResult{Value: 0, ErrCode: 1}
 	}
 	return StorageResult{Value: val, ErrCode: 0}
 }
 
-func (s NaiveStorage) Put(key string, val int) {
+// Put value
+func (s naiveStorage) Put(key string, val int) {
 	s.data[key] = val
 }
 
-func (s NaiveStorage) Lock() {
+// Lock storage
+func (s naiveStorage) Lock(string) {
 	s.mtx.Lock()
 }
 
-func (s NaiveStorage) Unlock() {
+// Unlock storage
+func (s naiveStorage) Unlock(string) {
 	s.mtx.Unlock()
 }

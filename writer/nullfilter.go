@@ -1,7 +1,9 @@
 package aggregator
 
-type NullFilter struct {}
+// NullFilter passes all events
+type NullFilter struct{}
 
-func (f NullFilter) IsValid(e Event) bool {
-  return true
+// IsValid passes all events
+func (f NullFilter) IsValid(e event) bool {
+	return true
 }

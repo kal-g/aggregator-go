@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/tecbot/gorocksdb"
 )
@@ -15,7 +16,7 @@ func main() {
 		panic(err)
 	}
 
-	data, err := db.Get(gorocksdb.NewDefaultReadOptions(), []byte("1:2"))
+	data, err := db.Get(gorocksdb.NewDefaultReadOptions(), []byte(os.Args[1]))
 	if err != nil {
 		panic(err)
 	}
