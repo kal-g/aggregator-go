@@ -3,7 +3,7 @@ package aggregator
 import (
 	"testing"
 
-	ct "github.com/kal-g/aggregator-go/common_test"
+	ct "github.com/kal-g/aggregator-go/internal/common_test"
 )
 
 func TestNaiveStorage1(t *testing.T) {

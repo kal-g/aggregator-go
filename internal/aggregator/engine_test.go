@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	ct "github.com/kal-g/aggregator-go/common_test"
+	ct "github.com/kal-g/aggregator-go/internal/common_test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,7 +60,7 @@ func TestNaiveE2E(t *testing.T) {
 }
 
 func E2ETest(t *testing.T, storage AbstractStorage) {
-	input, _ := ioutil.ReadFile("../tools/config/example")
+	input, _ := ioutil.ReadFile("../../tools/config/example")
 	parser := newConfigParserFromRaw(input, storage)
 	engine := newEngine(&parser)
 
