@@ -60,7 +60,7 @@ func TestNaiveE2E(t *testing.T) {
 }
 
 func E2ETest(t *testing.T, storage AbstractStorage) {
-	input, _ := ioutil.ReadFile("../../tools/config/example")
+	input, _ := ioutil.ReadFile("../../config/example")
 	parser := newConfigParserFromRaw(input, storage)
 	engine := newEngine(&parser)
 

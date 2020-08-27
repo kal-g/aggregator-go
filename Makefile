@@ -11,7 +11,7 @@ test_client:
 
 storage_reader:
 	@mkdir -p bin
-	@go build -o bin/storage_reader tools/storage_reader/main.go 
+	@go build -o bin/storage_reader cmd/storage_reader/main.go 
 
 clean:
 	@rm -rf bin
@@ -20,7 +20,7 @@ test:
 	@go test ./...
 
 e2e_test: all
-	@./tools/scripts/e2e_test.sh
+	@./scripts/e2e_test.sh
 
 benchmark: all
-	@./tools/scripts/benchmark.sh
+	@./scripts/benchmark.sh

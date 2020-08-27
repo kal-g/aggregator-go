@@ -81,7 +81,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 }
 
 func getConfigText() []byte {
-	content, err := ioutil.ReadFile("tools/config/example")
+	content, err := ioutil.ReadFile("config/example")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 func TestConfigParser(t *testing.T) {
-	input, err := ioutil.ReadFile("../../tools/config/example")
+	input, err := ioutil.ReadFile("../../config/example")
 	ct.AssertEqual(t, err, nil)
 	cp := newConfigParserFromRaw(input, nil)
 	cpStr := fmt.Sprintf("%+v", cp)
