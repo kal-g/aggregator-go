@@ -20,6 +20,7 @@ const (
 	eventValidationFailed engineHandleResult = 2
 	eventConfigNotFound   engineHandleResult = 3
 	invalidEventID        engineHandleResult = 4
+	deferredSuccess       engineHandleResult = 5
 )
 
 const (

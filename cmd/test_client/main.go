@@ -30,7 +30,6 @@ func main() {
 	bodyJSON := make(map[string]interface{})
 	bodyJSON["payload"] = getPayload()
 	bodyJSON["namespace"] = "test"
-	bodyJSON["verbose"] = true
 	bodyData, _ := json.Marshal(bodyJSON)
 
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(bodyData))

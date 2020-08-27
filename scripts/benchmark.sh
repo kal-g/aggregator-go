@@ -13,24 +13,24 @@ fi
 
 echo "Number of concurrent clients: $num_clients"
 
-SECONDS=0
+INIT_TS=`gdate +%s.%N`
 for run in $(seq 1 $num_clients)
 do
-  ./bin/test_client 20000 &>bin/client_logs/$run &
+  ./bin/test_client 10000 &>bin/client_logs/$run &
   pids[${run}]=$!
 done
 
 for pid in ${pids[*]}; do
     wait $pid
 done
-duration=$SECONDS
+END_TS=`gdate +%s.%N`
 
 sleep 1
 count=`./bin/storage_reader test:1:2`
 echo -n "Count "
 echo $count
 echo -n "RPS "
-echo "scale=2 ; $count / $duration" | bc
+echo "$count / ($END_TS - $INIT_TS)" | bc -l
 
 
 pkill test_client

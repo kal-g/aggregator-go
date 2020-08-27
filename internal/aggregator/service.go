@@ -52,7 +52,24 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		namespace = nString
 	}
 
-	payload := re["payload"].(map[string]interface{})
+	engineResult := deferredSuccess
+	if isVerbose {
+		engineResult = s.doConsume(re["payload"].(map[string]interface{}), namespace)
+	} else {
+		go s.doConsume(re["payload"].(map[string]interface{}), namespace)
+
+	}
+
+	consumeRes := ConsumeResult{
+		ErrorCode: engineResult,
+	}
+	data, _ := json.Marshal(consumeRes)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
+func (s *Service) doConsume(payload map[string]interface{}, namespace string) engineHandleResult {
 	// Since we're unmarshalling into an interface, unmarshal converts to floats
 	// Convert the floats to ints
 	sanitizedPayload := map[string]interface{}{}
@@ -64,20 +81,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 			sanitizedPayload[k] = v
 		}
 	}
-
-	engineResult := s.e.HandleRawEvent(sanitizedPayload, namespace)
-
-	if isVerbose {
-		consumeRes := ConsumeResult{
-			ErrorCode: engineResult,
-		}
-		data, _ := json.Marshal(consumeRes)
-		t := ConsumeResult{}
-		json.Unmarshal(data, &t)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
-	}
+	return s.e.HandleRawEvent(sanitizedPayload, namespace)
 }
 
 func getConfigText() []byte {
