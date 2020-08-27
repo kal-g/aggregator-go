@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/gorilla/mux"
-	writer "github.com/kal-g/aggregator-go/writer"
+	agg "github.com/kal-g/aggregator-go/internal/aggregator"
 	"github.com/rs/zerolog/log"
 )
 
@@ -19,7 +19,7 @@ const (
 )
 
 func main() {
-	svc := writer.MakeNewService(os.Args[1])
+	svc := agg.MakeNewService(os.Args[1])
 
 	r := mux.NewRouter()
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")

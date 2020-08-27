@@ -3,7 +3,7 @@ all: aggregator test_client storage_reader
 
 aggregator:
 	@mkdir -p bin
-	@go build -o bin/aggregator
+	@go build -o bin/aggregator cmd/aggregator/main.go
 
 test_client:
 	@mkdir -p bin
