@@ -23,4 +23,9 @@ e2e_test: all
 	@./scripts/e2e_test.sh
 
 benchmark: all
-	@./scripts/benchmark.sh
+	@./scripts/benchmark.sh 1
+	@./scripts/benchmark.sh 3
+
+run_benchmark: all
+	$(eval IMG=$(shell sh -c "docker build --no-cache -q config/docker/benchmark"))
+	@docker run -it $(IMG)
