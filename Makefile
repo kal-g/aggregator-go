@@ -23,4 +23,5 @@ e2e_test: all
 	@./scripts/e2e_test.sh
 
 benchmark: all
-	@./scripts/benchmark.sh
+	@./scripts/benchmark.sh 1
+	@./scripts/benchmark.sh 3
