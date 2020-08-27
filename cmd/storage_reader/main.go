@@ -11,7 +11,7 @@ func main() {
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetCreateIfMissing(false)
 
-	db, err := gorocksdb.OpenDbForReadOnly(opts, "rocksdb_storage", false)
+	db, err := gorocksdb.OpenDbForReadOnly(opts, "bin/rocksdb_storage", false)
 	if err != nil {
 		panic(err)
 	}

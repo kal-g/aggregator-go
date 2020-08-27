@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -18,7 +19,7 @@ func newRocksDBStorage(path string) *rocksDBStorage {
 
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetCreateIfMissing(true)
-
+	fmt.Printf("Path: %+v\n", path)
 	db, err := gorocksdb.OpenDb(opts, path)
 	if err != nil {
 		panic(err)

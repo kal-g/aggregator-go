@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"testing"
 
-	ct "github.com/kal-g/aggregator-go/common_test"
+	ct "github.com/kal-g/aggregator-go/internal/common_test"
 )
 
 func TestConfigParser(t *testing.T) {
-	input, err := ioutil.ReadFile("../tools/config/example")
+	input, err := ioutil.ReadFile("../../config/example")
 	ct.AssertEqual(t, err, nil)
 	cp := newConfigParserFromRaw(input, nil)
 	cpStr := fmt.Sprintf("%+v", cp)
