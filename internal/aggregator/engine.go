@@ -1,41 +1,12 @@
 package aggregator
 
 type engine struct {
-	EventMap  map[int]eventConfig
-	MetricMap map[string]map[int][]metricConfig
-	Parser    *configParser
+	nsm *namespaceManager
 }
 
-func newEngine(parser *configParser) engine {
-	eventMap := make(map[int]eventConfig)
-	// Create a map from event id to event config
-	for _, eventConfig := range parser.getEventConfigs() {
-		eventMap[eventConfig.ID] = eventConfig
-	}
-
-	metricMap := make(map[string]map[int][]metricConfig)
-	// Create a map from event id to metric configs
-	for _, mc := range parser.getMetricConfigs() {
-		// Init the namespace if it doesn't exist
-		_, namespaceExists := metricMap[mc.Namespace]
-		if !namespaceExists {
-			metricMap[mc.Namespace] = make(map[int][]metricConfig)
-		}
-		for _, eventID := range mc.EventIds {
-			// Initialize the slice if it doesn't exist
-			_, metricExists := metricMap[mc.Namespace][eventID]
-			if !metricExists {
-				metricMap[mc.Namespace][eventID] = []metricConfig{}
-			}
-			metricMap[mc.Namespace][eventID] = append(metricMap[mc.Namespace][eventID], mc)
-		}
-	}
-
-	return engine{
-		EventMap:  eventMap,
-		MetricMap: metricMap,
-		Parser:    parser,
-	}
+func newEngine(nsm *namespaceManager) engine {
+	e := engine{nsm: nsm}
+	return e
 }
 
 func (e engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string) engineHandleResult {
@@ -50,7 +21,8 @@ func (e engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 		return invalidEventID
 	}
 	// Get the config for the event
-	eventConfig, configExists := e.EventMap[idTyped]
+	// TODO Add RW lock for events
+	eventConfig, configExists := e.nsm.EventMap[idTyped]
 	if !configExists {
 		return eventConfigNotFound
 	}
@@ -59,10 +31,16 @@ func (e engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 	if event == nil {
 		return eventValidationFailed
 	}
-	return e.handleEvent(*event, namespace)
+	res := e.handleEvent(*event, namespace)
+	return res
 }
 
 func (e engine) handleEvent(event event, namespace string) engineHandleResult {
+	// TODO Figure out more elegant solution for global + namespace
+	e.nsm.namespaceRLock("")
+	if namespace != "" {
+		e.nsm.namespaceRLock(namespace)
+	}
 	// Get the metric configs for this event
 	metricConfigs := e.getMetricConfigs(event, namespace)
 	if len(metricConfigs) == 0 {
@@ -73,14 +51,18 @@ func (e engine) handleEvent(event event, namespace string) engineHandleResult {
 	for _, metricConfig := range metricConfigs {
 		metricConfig.handleEvent(event)
 	}
+	e.nsm.namespaceRUnlock("")
+	if namespace != "" {
+		e.nsm.namespaceRUnlock(namespace)
+	}
 	return success
 }
 
-func (e engine) getMetricConfigs(event event, namespace string) []metricConfig {
-	configs := []metricConfig{}
+func (e engine) getMetricConfigs(event event, namespace string) []*metricConfig {
+	configs := []*metricConfig{}
 
 	// First get all configs in global namespace
-	globalNamespace, globalNamespaceExists := e.MetricMap[""]
+	globalNamespace, globalNamespaceExists := e.nsm.EventToMetricMap[""]
 	if globalNamespaceExists {
 		globalConfigs, globalConfigsExist := globalNamespace[event.ID]
 		if globalConfigsExist {
@@ -90,7 +72,7 @@ func (e engine) getMetricConfigs(event event, namespace string) []metricConfig {
 
 	// Then get all configs in the specified namespace
 	if namespace != "" {
-		specificNamespace, namespaceExists := e.MetricMap[namespace]
+		specificNamespace, namespaceExists := e.nsm.EventToMetricMap[namespace]
 		if namespaceExists {
 			namespaceConfigs, namespaceConfigsExist := specificNamespace[event.ID]
 			if namespaceConfigsExist {
@@ -99,4 +81,16 @@ func (e engine) getMetricConfigs(event event, namespace string) []metricConfig {
 		}
 	}
 	return configs
+}
+
+func (e engine) getMetricConfig(namespaceName string, metricID int) *metricConfig {
+	namespace, namespaceExists := e.nsm.MetricMap[namespaceName]
+	if !namespaceExists {
+		return nil
+	}
+	mc, mcExists := namespace[metricID]
+	if !mcExists {
+		return nil
+	}
+	return mc
 }
