@@ -37,7 +37,7 @@ func TestEngine(t *testing.T) {
 		Storage:    storage,
 	}
 	mcs := []*metricConfig{&mc}
-	parser := newConfigParserFromConfigs(ecs, mcs, storage)
+	parser := NSMFromConfigs(ecs, mcs, storage)
 
 	// Create engine
 	engine := newEngine(&parser)
@@ -61,7 +61,7 @@ func TestNaiveE2E(t *testing.T) {
 
 func E2ETest(t *testing.T, storage AbstractStorage) {
 	input, _ := ioutil.ReadFile("../../config/example")
-	parser := newConfigParserFromRaw(input, storage)
+	parser := NSMFromRaw(input, storage)
 	engine := newEngine(&parser)
 
 	// Handle a filtered event
@@ -95,7 +95,7 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 func TestNamespace(t *testing.T) {
 	storage := newNaiveStorage()
 	input, _ := ioutil.ReadFile("../../config/example")
-	parser := newConfigParserFromRaw(input, storage)
+	parser := NSMFromRaw(input, storage)
 	engine := newEngine(&parser)
 
 	// Handle a basic

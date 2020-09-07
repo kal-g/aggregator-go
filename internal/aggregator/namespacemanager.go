@@ -10,13 +10,13 @@ type namespaceManager struct {
 	MetricConfigs    []*metricConfig
 	storage          AbstractStorage
 	nsLck            map[string]*sync.RWMutex
-	metaMtx          sync.Mutex
+	metaMtx          *sync.Mutex
 	EventMap         map[int]*eventConfig
 	MetricMap        map[string]map[int]*metricConfig
 	EventToMetricMap map[string]map[int][]*metricConfig
 }
 
-func newConfigParserFromRaw(input []byte, storage AbstractStorage) namespaceManager {
+func NSMFromRaw(input []byte, storage AbstractStorage) namespaceManager {
 	var doc map[string]interface{}
 	json.Unmarshal(input, &doc)
 
@@ -25,17 +25,19 @@ func newConfigParserFromRaw(input []byte, storage AbstractStorage) namespaceMana
 		MetricConfigs: extractMetricConfigs(doc, storage),
 		storage:       storage,
 		nsLck:         map[string]*sync.RWMutex{},
+		metaMtx:       &sync.Mutex{},
 	}
 	nsm.initConfigMaps()
 	return nsm
 }
 
-func newConfigParserFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractStorage) namespaceManager {
+func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractStorage) namespaceManager {
 	nsm := namespaceManager{
 		EventConfigs:  ecs,
 		MetricConfigs: mcs,
 		storage:       storage,
 		nsLck:         map[string]*sync.RWMutex{},
+		metaMtx:       &sync.Mutex{},
 	}
 	nsm.initConfigMaps()
 	return nsm

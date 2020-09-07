@@ -26,7 +26,7 @@ type CountResult struct {
 // MakeNewService creates and initializes the aggregator service
 func MakeNewService(rocksDBPath string) Service {
 	storage := newRocksDBStorage(rocksDBPath)
-	parser := newConfigParserFromRaw(getConfigText(), storage)
+	parser := NSMFromRaw(getConfigText(), storage)
 	engine := newEngine(&parser)
 	svc := Service{e: engine}
 	return svc
