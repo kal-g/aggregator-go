@@ -16,6 +16,11 @@ type metricConfig struct {
 	Storage    AbstractStorage
 }
 
+type metricCountResult struct {
+	ErrCode int
+	Count   int
+}
+
 func (mc metricConfig) handleEvent(event event) metricHandleResult {
 
 	// Can assume that event is of the right type
@@ -27,7 +32,7 @@ func (mc metricConfig) handleEvent(event event) metricHandleResult {
 	// Get metric from storage, or initialize if it doesn't exist
 	mc.Storage.Lock(mc.Namespace)
 
-	storageKey := mc.getMetricKey(event, mc.Namespace)
+	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
 
 	initialValue := int(0)
@@ -53,9 +58,24 @@ func (mc metricConfig) handleEvent(event event) metricHandleResult {
 
 }
 
-func (mc metricConfig) getMetricKey(event event, namespace string) string {
+func (mc metricConfig) getCount(metricKey int) metricCountResult {
+	storageKey := getMetricStorageKey(metricKey, mc.ID, mc.Namespace)
+	r := mc.Storage.Get(storageKey)
+	if r.ErrCode != 0 {
+		return metricCountResult{
+			ErrCode: r.ErrCode,
+			Count:   0,
+		}
+	}
+	return metricCountResult{
+		ErrCode: 0,
+		Count:   r.Value,
+	}
+}
+
+func getMetricStorageKey(key int, metricID int, namespace string) string {
 	// Key of a metric is the id + the type + the key field
-	mk := namespace + ":" + strconv.Itoa(mc.ID) + ":" + strconv.Itoa(event.GetDataField(mc.KeyField).(int))
+	mk := namespace + ":" + strconv.Itoa(metricID) + ":" + strconv.Itoa(key)
 	return mk
 }
 

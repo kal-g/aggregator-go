@@ -14,8 +14,9 @@ for pid in ${pids[*]}; do
     wait $pid
 done
 sleep 1
-namespaceCount=`./bin/storage_reader test:1:2`
-if [[ $namespaceCount -ne 10000 ]]
+#namespaceCount=`./bin/storage_reader test:1:2`
+namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
+if [ $namespaceCount != "{\"ErrCode\":0,\"Count\":10000}" ]
 then
   echo "Namespace count was " $namespaceCount
   pkill -f aggregator
@@ -23,8 +24,9 @@ then
   exit 1
 fi
 
-globalCount=`./bin/storage_reader :1:2`
-if [[ $globalCount -ne 20000 ]]
+#globalCount=`./bin/storage_reader :1:2`
+globalCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"metricKey":2,"metricID":1}' http://localhost:50051/count`
+if [ $globalCount != "{\"ErrCode\":0,\"Count\":20000}" ]
 then
   echo "Global count was " $globalCount
   pkill -f aggregator

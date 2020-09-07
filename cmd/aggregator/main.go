@@ -16,6 +16,7 @@ import (
 const (
 	port       = 50051
 	consumeURL = "/consume"
+	countURL   = "/count"
 )
 
 func main() {
@@ -23,6 +24,7 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")
+	r.HandleFunc(countURL, svc.Count).Methods("GET", "POST")
 
 	// Create listener for signals
 	sigs := make(chan os.Signal, 1)

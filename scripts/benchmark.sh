@@ -13,7 +13,7 @@ fi
 
 echo "Number of concurrent clients: $num_clients"
 
-INIT_TS=`gdate +%s.%N`
+INIT_TS=`date +%s.%N`
 for run in $(seq 1 $num_clients)
 do
   ./bin/test_client 10000 &>bin/client_logs/$run &
@@ -23,7 +23,7 @@ done
 for pid in ${pids[*]}; do
     wait $pid
 done
-END_TS=`gdate +%s.%N`
+END_TS=`date +%s.%N`
 
 sleep 1
 count=`./bin/storage_reader test:1:2`

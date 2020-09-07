@@ -7,6 +7,7 @@ import (
 
 // AssertEqual checks if values are equal
 func AssertEqual(t *testing.T, a interface{}, b interface{}) {
+	t.Helper()
 	if reflect.DeepEqual(a, b) {
 		return
 	}

@@ -19,7 +19,7 @@ func TestEngine(t *testing.T) {
 		ID:     1,
 		Fields: fields,
 	}
-	ecs := []eventConfig{ec}
+	ecs := []*eventConfig{&ec}
 	eIDs := []int{1}
 
 	// Create raw event
@@ -36,8 +36,8 @@ func TestEngine(t *testing.T) {
 		Filter:     NullFilter{},
 		Storage:    storage,
 	}
-	mcs := []metricConfig{mc}
-	parser := newConfigParserFromConfigs(ecs, mcs, storage)
+	mcs := []*metricConfig{&mc}
+	parser := NSMFromConfigs(ecs, mcs, storage)
 
 	// Create engine
 	engine := newEngine(&parser)
@@ -61,7 +61,7 @@ func TestNaiveE2E(t *testing.T) {
 
 func E2ETest(t *testing.T, storage AbstractStorage) {
 	input, _ := ioutil.ReadFile("../../config/example")
-	parser := newConfigParserFromRaw(input, storage)
+	parser := NSMFromRaw(input, storage)
 	engine := newEngine(&parser)
 
 	// Handle a filtered event
@@ -90,4 +90,29 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 	ct.AssertEqual(t, res3, success)
 	ct.AssertEqual(t, sr3.ErrCode, 0)
 	ct.AssertEqual(t, sr3.Value, 1234)
+}
+
+func TestNamespace(t *testing.T) {
+	storage := newNaiveStorage()
+	input, _ := ioutil.ReadFile("../../config/example")
+	parser := NSMFromRaw(input, storage)
+	engine := newEngine(&parser)
+
+	// Handle a basic
+	re1 := map[string]interface{}{"id": 1, "test1": 2, "test2": 2, "test3": 3, "test4": 4}
+
+	res1 := engine.HandleRawEvent(re1, "")
+	sr1 := storage.Get(":1:2")
+
+	ct.AssertEqual(t, res1, success)
+	ct.AssertEqual(t, sr1.ErrCode, 0)
+	ct.AssertEqual(t, sr1.Value, 2)
+
+	re2 := map[string]interface{}{"id": 1, "test1": 2, "test2": 2, "test3": 3, "test4": 4}
+	res2 := engine.HandleRawEvent(re2, "test")
+	sr2 := storage.Get("test:1:2")
+
+	ct.AssertEqual(t, res2, success)
+	ct.AssertEqual(t, sr2.ErrCode, 0)
+	ct.AssertEqual(t, sr2.Value, 3)
 }
