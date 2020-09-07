@@ -40,11 +40,11 @@ func TestEngine(t *testing.T) {
 	parser := NSMFromConfigs(ecs, mcs, storage)
 
 	// Create engine
-	engine := newEngine(&parser)
+	engine := NewEngine(&parser)
 
 	// Handle a basic event
 	result := engine.HandleRawEvent(re, "")
-	assert.Equal(t, success, result)
+	assert.Equal(t, Success, result)
 
 	// Inspect the storage directly to check result
 	// Metric 1, for key 1234
@@ -61,15 +61,15 @@ func TestNaiveE2E(t *testing.T) {
 
 func E2ETest(t *testing.T, storage AbstractStorage) {
 	input, _ := ioutil.ReadFile("../../config/example")
-	parser := NSMFromRaw(input, storage)
-	engine := newEngine(&parser)
+	nsm := NSMFromRaw(input, storage)
+	engine := NewEngine(&nsm)
 
 	// Handle a filtered event
 	re1 := map[string]interface{}{"id": 1, "test1": 1234, "test2": 1, "test3": 1234, "test4": 1234}
 	res1 := engine.HandleRawEvent(re1, "")
 	sr1 := storage.Get(":1:1234")
 
-	ct.AssertEqual(t, res1, success)
+	ct.AssertEqual(t, res1, Success)
 	ct.AssertEqual(t, sr1.ErrCode, 1)
 	ct.AssertEqual(t, sr1.Value, 0)
 
@@ -78,7 +78,7 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 	res2 := engine.HandleRawEvent(re2, "")
 	sr2 := storage.Get(":1:1234")
 
-	ct.AssertEqual(t, res2, success)
+	ct.AssertEqual(t, res2, Success)
 	ct.AssertEqual(t, sr2.ErrCode, 0)
 	ct.AssertEqual(t, sr2.Value, 1234)
 
@@ -87,7 +87,7 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 	res3 := engine.HandleRawEvent(re3, "")
 	sr3 := storage.Get(":1:1234")
 
-	ct.AssertEqual(t, res3, success)
+	ct.AssertEqual(t, res3, Success)
 	ct.AssertEqual(t, sr3.ErrCode, 0)
 	ct.AssertEqual(t, sr3.Value, 1234)
 }
@@ -95,8 +95,8 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 func TestNamespace(t *testing.T) {
 	storage := newNaiveStorage()
 	input, _ := ioutil.ReadFile("../../config/example")
-	parser := NSMFromRaw(input, storage)
-	engine := newEngine(&parser)
+	nsm := NSMFromRaw(input, storage)
+	engine := NewEngine(&nsm)
 
 	// Handle a basic
 	re1 := map[string]interface{}{"id": 1, "test1": 2, "test2": 2, "test3": 3, "test4": 4}
@@ -104,7 +104,7 @@ func TestNamespace(t *testing.T) {
 	res1 := engine.HandleRawEvent(re1, "")
 	sr1 := storage.Get(":1:2")
 
-	ct.AssertEqual(t, res1, success)
+	ct.AssertEqual(t, res1, Success)
 	ct.AssertEqual(t, sr1.ErrCode, 0)
 	ct.AssertEqual(t, sr1.Value, 2)
 
@@ -112,7 +112,7 @@ func TestNamespace(t *testing.T) {
 	res2 := engine.HandleRawEvent(re2, "test")
 	sr2 := storage.Get("test:1:2")
 
-	ct.AssertEqual(t, res2, success)
+	ct.AssertEqual(t, res2, Success)
 	ct.AssertEqual(t, sr2.ErrCode, 0)
 	ct.AssertEqual(t, sr2.Value, 3)
 }

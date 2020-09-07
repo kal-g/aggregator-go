@@ -33,9 +33,10 @@ func TestFilterValidation(t *testing.T) {
 		ID:   0,
 		Data: map[string]interface{}{"key": 1234, "filterKey": -1},
 	}
-
-	ct.AssertEqual(t, config.handleEvent(validEvent), noError)
-	ct.AssertEqual(t, config.handleEvent(invalidEvent), failedFilter)
+	res1, _ := config.handleEvent(validEvent)
+	res2, _ := config.handleEvent(invalidEvent)
+	ct.AssertEqual(t, res1, noError)
+	ct.AssertEqual(t, res2, failedFilter)
 
 }
 

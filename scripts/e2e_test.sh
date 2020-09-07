@@ -1,5 +1,11 @@
 #! /bin/bash
 
+function end {
+  pkill -f aggregator
+  rm -rf bin/rocksdb_storage
+  exit 1
+}
+
 ./bin/aggregator "bin/rocksdb_storage" @>bin/writer_logs &
 
 sleep 0.1
@@ -14,24 +20,33 @@ for pid in ${pids[*]}; do
     wait $pid
 done
 sleep 1
-#namespaceCount=`./bin/storage_reader test:1:2`
+
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
+echo "Namespace count was" $namespaceCount
 if [ $namespaceCount != "{\"ErrCode\":0,\"Count\":10000}" ]
 then
-  echo "Namespace count was " $namespaceCount
-  pkill -f aggregator
-  rm -rf bin/rocksdb_storage
-  exit 1
+  end
 fi
 
-#globalCount=`./bin/storage_reader :1:2`
 globalCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"metricKey":2,"metricID":1}' http://localhost:50051/count`
+echo "Global count was" $globalCount
 if [ $globalCount != "{\"ErrCode\":0,\"Count\":20000}" ]
 then
-  echo "Global count was " $globalCount
-  pkill -f aggregator
-  rm -rf bin/rocksdb_storage
-  exit 1
+  end
+fi
+
+globalInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":""}' http://localhost:50051/namespace/get_info`
+echo "Global info was" $globalInfo
+if [ $globalInfo != '{"error_code":0,"data":{"metric_keys":{"1":1}}}' ]
+then
+  end
+fi
+
+namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
+echo "Namespace info was" $namespaceInfo
+if [ $namespaceInfo != '{"error_code":0,"data":{"metric_keys":{"1":1}}}' ]
+then
+  end
 fi
 
 echo "Test passed"
