@@ -16,7 +16,7 @@ type metricConfig struct {
 	Storage    AbstractStorage
 }
 
-type metricCountResult struct {
+type MetricCountResult struct {
 	ErrCode int
 	Count   int
 }
@@ -58,16 +58,16 @@ func (mc metricConfig) handleEvent(event event) metricHandleResult {
 
 }
 
-func (mc metricConfig) getCount(metricKey int) metricCountResult {
+func (mc metricConfig) getCount(metricKey int) MetricCountResult {
 	storageKey := getMetricStorageKey(metricKey, mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
 	if r.ErrCode != 0 {
-		return metricCountResult{
+		return MetricCountResult{
 			ErrCode: r.ErrCode,
 			Count:   0,
 		}
 	}
-	return metricCountResult{
+	return MetricCountResult{
 		ErrCode: 0,
 		Count:   r.Value,
 	}

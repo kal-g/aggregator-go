@@ -14,7 +14,7 @@ type rocksDBStorage struct {
 	mtxMap map[string]*sync.Mutex
 }
 
-func newRocksDBStorage(path string) *rocksDBStorage {
+func NewRocksDBStorage(path string) *rocksDBStorage {
 	var rdb rocksDBStorage
 
 	opts := gorocksdb.NewDefaultOptions()
