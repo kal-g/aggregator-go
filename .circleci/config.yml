@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: kalgg/aggregator-go-primary:0.0.1
+      - image: kalgg/aggregator-go-primary:0.0.2
     working_directory: /go/src/github.com/kal-g/aggregator-go
     steps:
       - checkout
