@@ -1,25 +1,27 @@
 package aggregator
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
 
 	"github.com/tecbot/gorocksdb"
 )
 
-type rocksDBStorage struct {
+// RocksDBStorage with concurrency
+type RocksDBStorage struct {
 	db     *gorocksdb.DB
 	mtx    *sync.Mutex
 	mtxMap map[string]*sync.Mutex
 }
 
-func newRocksDBStorage(path string) *rocksDBStorage {
-	var rdb rocksDBStorage
+// NewRocksDBStorage creates and inits a new rocksdb instance. Must not already exist
+func NewRocksDBStorage(path string) *RocksDBStorage {
+	var rdb RocksDBStorage
 
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetCreateIfMissing(true)
-	fmt.Printf("Path: %+v\n", path)
+	opts.SetErrorIfExists(true)
+
 	db, err := gorocksdb.OpenDb(opts, path)
 	if err != nil {
 		panic(err)
@@ -30,13 +32,17 @@ func newRocksDBStorage(path string) *rocksDBStorage {
 	return &rdb
 }
 
-func (s rocksDBStorage) Get(key string) StorageResult {
+// Get for storage
+func (s RocksDBStorage) Get(key string) StorageResult {
 	val, err := s.db.Get(gorocksdb.NewDefaultReadOptions(), []byte(key))
 	if err != nil {
 		return StorageResult{Value: 0, ErrCode: 1}
 	}
 
 	data := val.Data()
+	if len(data) == 0 {
+		return StorageResult{Value: 0, ErrCode: 1}
+	}
 	value, err := strconv.Atoi(string(data))
 	if err != nil {
 		return StorageResult{Value: 0, ErrCode: 2}
@@ -44,11 +50,13 @@ func (s rocksDBStorage) Get(key string) StorageResult {
 	return StorageResult{Value: value, ErrCode: 0}
 }
 
-func (s rocksDBStorage) Put(key string, val int) {
+// Put for storage
+func (s RocksDBStorage) Put(key string, val int) {
 	s.db.Put(gorocksdb.NewDefaultWriteOptions(), []byte(key), []byte(strconv.Itoa(val)))
 }
 
-func (s rocksDBStorage) Lock(namespace string) {
+// Lock for storage per namespace
+func (s RocksDBStorage) Lock(namespace string) {
 	mtx, mtxExists := s.mtxMap[namespace]
 	if !mtxExists {
 		s.mtx.Lock()
@@ -61,6 +69,7 @@ func (s rocksDBStorage) Lock(namespace string) {
 
 }
 
-func (s rocksDBStorage) Unlock(namespace string) {
+// Unlock for storage per namespace
+func (s RocksDBStorage) Unlock(namespace string) {
 	s.mtxMap[namespace].Unlock()
 }

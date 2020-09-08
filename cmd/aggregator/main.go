@@ -9,22 +9,24 @@ import (
 	"syscall"
 
 	"github.com/gorilla/mux"
-	agg "github.com/kal-g/aggregator-go/internal/aggregator"
+	"github.com/kal-g/aggregator-go/internal/service"
 	"github.com/rs/zerolog/log"
 )
 
 const (
-	port       = 50051
-	consumeURL = "/consume"
-	countURL   = "/count"
+	port                = 50051
+	consumeURL          = "/consume"
+	countURL            = "/count"
+	namespaceGetInfoURL = "/namespace/get_info"
 )
 
 func main() {
-	svc := agg.MakeNewService(os.Args[1])
+	svc := service.MakeNewService(os.Args[1])
 
 	r := mux.NewRouter()
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")
 	r.HandleFunc(countURL, svc.Count).Methods("GET", "POST")
+	r.HandleFunc(namespaceGetInfoURL, svc.NamespaceGetInfo).Methods("GET", "POST")
 
 	// Create listener for signals
 	sigs := make(chan os.Signal, 1)

@@ -5,45 +5,69 @@ import (
 	"sync"
 )
 
-type namespaceManager struct {
+// NamespaceMetadata encapsulates user relevant metadata about the namespace
+type NamespaceMetadata struct {
+	KeySizeMap map[int]int `json:"metric_keys"`
+}
+
+// NamespaceManager manages namespace access and metadata
+type NamespaceManager struct {
 	EventConfigs     []*eventConfig
 	MetricConfigs    []*metricConfig
 	storage          AbstractStorage
-	nsLck            map[string]*sync.RWMutex
-	metaMtx          *sync.Mutex
+	nsDataLck        map[string]*sync.RWMutex
+	MetaMtx          *sync.Mutex
 	EventMap         map[int]*eventConfig
 	MetricMap        map[string]map[int]*metricConfig
 	EventToMetricMap map[string]map[int][]*metricConfig
+	NsMetaMap        map[string]NamespaceMetadata
 }
 
-func NSMFromRaw(input []byte, storage AbstractStorage) namespaceManager {
+// NSMFromRaw creates a namespace manager from a byte stream
+func NSMFromRaw(input []byte, storage AbstractStorage) NamespaceManager {
 	var doc map[string]interface{}
 	json.Unmarshal(input, &doc)
 
-	nsm := namespaceManager{
+	nsm := NamespaceManager{
 		EventConfigs:  extractEventConfigs(doc),
 		MetricConfigs: extractMetricConfigs(doc, storage),
 		storage:       storage,
-		nsLck:         map[string]*sync.RWMutex{},
-		metaMtx:       &sync.Mutex{},
+		nsDataLck:     map[string]*sync.RWMutex{},
+		MetaMtx:       &sync.Mutex{},
 	}
 	nsm.initConfigMaps()
 	return nsm
 }
 
-func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractStorage) namespaceManager {
-	nsm := namespaceManager{
+// NSMFromConfigs creates a namespace manager from configs
+func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractStorage) NamespaceManager {
+	nsm := NamespaceManager{
 		EventConfigs:  ecs,
 		MetricConfigs: mcs,
 		storage:       storage,
-		nsLck:         map[string]*sync.RWMutex{},
-		metaMtx:       &sync.Mutex{},
+		nsDataLck:     map[string]*sync.RWMutex{},
+		MetaMtx:       &sync.Mutex{},
 	}
 	nsm.initConfigMaps()
 	return nsm
 }
 
-func (nsm *namespaceManager) initConfigMaps() {
+func (nsm *NamespaceManager) initConfigMaps() {
+
+	nsMetaMap := make(map[string]NamespaceMetadata)
+	nsMetaLocks := make(map[string]*sync.Mutex)
+	for _, mc := range nsm.MetricConfigs {
+		ns := mc.Namespace
+		_, exists := nsMetaMap[ns]
+		if !exists {
+			nsMetaMap[ns] = NamespaceMetadata{
+				KeySizeMap: map[int]int{},
+			}
+			nsMetaLocks[ns] = &sync.Mutex{}
+		}
+		nsMetaMap[ns].KeySizeMap[mc.ID] = 0
+	}
+
 	eventMap := make(map[int]*eventConfig)
 
 	// Create a map from event id to event config
@@ -83,6 +107,7 @@ func (nsm *namespaceManager) initConfigMaps() {
 	nsm.EventMap = eventMap
 	nsm.MetricMap = metricMap
 	nsm.EventToMetricMap = eventToMetricMap
+	nsm.NsMetaMap = nsMetaMap
 
 }
 
@@ -163,42 +188,42 @@ func extractMetricFilters(filt []interface{}) abstractFilter {
 	return f
 }
 
-func (nsm *namespaceManager) namespaceRLock(ns string) {
-	_, exists := nsm.nsLck[ns]
+func (nsm *NamespaceManager) namespaceRLock(ns string) {
+	_, exists := nsm.nsDataLck[ns]
 	if !exists {
 		// Get global lock, check for existence again
-		nsm.metaMtx.Lock()
-		_, exists2 := nsm.nsLck[ns]
+		nsm.MetaMtx.Lock()
+		_, exists2 := nsm.nsDataLck[ns]
 		if !exists2 {
 			// Still doesn't exist, create
-			nsm.nsLck[ns] = &sync.RWMutex{}
+			nsm.nsDataLck[ns] = &sync.RWMutex{}
 		}
-		nsm.metaMtx.Unlock()
+		nsm.MetaMtx.Unlock()
 	}
 	// Lock must exist at this point
-	nsm.nsLck[ns].RLock()
+	nsm.nsDataLck[ns].RLock()
 }
 
-func (nsm *namespaceManager) namespaceRUnlock(ns string) {
-	nsm.nsLck[ns].RUnlock()
+func (nsm *NamespaceManager) namespaceRUnlock(ns string) {
+	nsm.nsDataLck[ns].RUnlock()
 }
 
-func (nsm *namespaceManager) namespaceWLock(ns string) {
-	_, exists := nsm.nsLck[ns]
+func (nsm *NamespaceManager) namespaceWLock(ns string) {
+	_, exists := nsm.nsDataLck[ns]
 	if !exists {
 		// Get global lock, check for existence again
-		nsm.metaMtx.Lock()
-		_, exists2 := nsm.nsLck[ns]
+		nsm.MetaMtx.Lock()
+		_, exists2 := nsm.nsDataLck[ns]
 		if !exists2 {
 			// Still doesn't exist, create
-			nsm.nsLck[ns] = &sync.RWMutex{}
+			nsm.nsDataLck[ns] = &sync.RWMutex{}
 		}
-		nsm.metaMtx.Unlock()
+		nsm.MetaMtx.Unlock()
 	}
 	// Lock must exist at this point
-	nsm.nsLck[ns].Lock()
+	nsm.nsDataLck[ns].Lock()
 }
 
-func (nsm *namespaceManager) namespaceUnlock(ns string) {
-	nsm.nsLck[ns].Unlock()
+func (nsm *NamespaceManager) namespaceUnlock(ns string) {
+	nsm.nsDataLck[ns].Unlock()
 }

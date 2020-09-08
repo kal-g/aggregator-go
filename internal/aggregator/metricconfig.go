@@ -16,17 +16,19 @@ type metricConfig struct {
 	Storage    AbstractStorage
 }
 
-type metricCountResult struct {
+// MetricCountResult is the result of a count operation
+// TODO move
+type MetricCountResult struct {
 	ErrCode int
 	Count   int
 }
 
-func (mc metricConfig) handleEvent(event event) metricHandleResult {
-
+func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
+	isNew := false
 	// Can assume that event is of the right type
 	// Check that the event passes the filter
 	if !mc.Filter.IsValid(event) {
-		return failedFilter
+		return failedFilter, false
 	}
 
 	// Get metric from storage, or initialize if it doesn't exist
@@ -38,6 +40,10 @@ func (mc metricConfig) handleEvent(event event) metricHandleResult {
 	initialValue := int(0)
 	if r.ErrCode == 0 {
 		initialValue = r.Value
+	}
+
+	if r.ErrCode == 1 {
+		isNew = true
 	}
 
 	metric := mc.initMetricByType(initialValue)
@@ -54,20 +60,20 @@ func (mc metricConfig) handleEvent(event event) metricHandleResult {
 	// Put back in storage
 	mc.Storage.Put(storageKey, metric.GetValue())
 	mc.Storage.Unlock(mc.Namespace)
-	return noError
+	return noError, isNew
 
 }
 
-func (mc metricConfig) getCount(metricKey int) metricCountResult {
+func (mc metricConfig) getCount(metricKey int) MetricCountResult {
 	storageKey := getMetricStorageKey(metricKey, mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
 	if r.ErrCode != 0 {
-		return metricCountResult{
+		return MetricCountResult{
 			ErrCode: r.ErrCode,
 			Count:   0,
 		}
 	}
-	return metricCountResult{
+	return MetricCountResult{
 		ErrCode: 0,
 		Count:   r.Value,
 	}
