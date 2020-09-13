@@ -22,6 +22,7 @@ jobs:
           path: aggregator-go
       - setup_remote_docker
       - run: ls
+      - run: pwd
       - run:
           name: Build Docker image
           command: |
