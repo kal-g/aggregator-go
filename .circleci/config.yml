@@ -4,11 +4,10 @@ executors:
     environment:
       IMAGE_NAME: kalgg/aggregator-go
     docker:
-      - image: circleci/buildpack-deps:stretch
+      - image: kalgg/aggregator-go-primary:0.0.2
 jobs:
   build:
-    docker:
-      - image: kalgg/aggregator-go-primary:0.0.2
+    executor: docker-publisher
     working_directory: /go/src/github.com/kal-g/aggregator-go
     steps:
       - checkout
