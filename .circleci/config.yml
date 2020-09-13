@@ -30,6 +30,16 @@ jobs:
             docker build -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             docker push $IMAGE_NAME
+  deploy:
+    steps:
+      - add_ssh_keys:
+        fingerprints:
+          - "f4:04:5b:2a:c5:96:f8:60:7c:dc:96:c2:f7:35:d7:ab"
+      - run:
+          name: Deploy to Host RPI 1
+          command: |
+            ssh ubuntu@$HOST_RPI_1 "ls"
+
 workflows:
   version: 2.1
   build-master:
@@ -38,7 +48,10 @@ workflows:
       - build_image_and_push:
           requires:
             - test
-          filters:
-            branches:
-              only:
-                - master
+          #filters:
+            #branches:
+              #only:
+                #- master
+      - deploy:
+          requires:
+            - test
