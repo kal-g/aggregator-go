@@ -36,12 +36,10 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - "f4:04:5b:2a:c5:96:f8:60:7c:dc:96:c2:f7:35:d7:ab"
-      - run: ls ~/.ssh
-      - run: ssh-add -l
       - run:
           name: Deploy to Host RPI 1
           command: |
-            ssh ubuntu@$HOST_RPI_1 "ls"
+            ssh -o StrictHostKeyChecking=no ubuntu@$HOST_RPI_1 "ls"
 
 workflows:
   version: 2.1
