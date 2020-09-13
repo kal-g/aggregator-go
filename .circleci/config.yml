@@ -4,7 +4,7 @@ executors:
     environment:
       IMAGE_NAME: kalgg/aggregator-go
     docker:
-      - image: kalgg/aggregator-go-build:0.0.1
+      - image: kalgg/aggregator-go-build:0.0.2
 jobs:
   test:
     executor: docker-publisher
@@ -27,7 +27,7 @@ jobs:
           name: Build Docker image
           command: |
             TAG=0.1.$CIRCLE_BUILD_NUM
-            docker build -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
+            docker buildx build --platform linux/amd64,linux/arm/v7, -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             docker push $IMAGE_NAME
   deploy:
@@ -39,7 +39,7 @@ jobs:
       - run:
           name: Deploy to Host RPI 1
           command: |
-            ssh -o StrictHostKeyChecking=no ubuntu@$HOST_RPI_1 "ls"
+            ssh -o StrictHostKeyChecking=no ubuntu@$HOST_RPI_1 "docker stop aggregator-go_1 && docker rm aggregator-go_1 && docker pull kalgg/aggregator-go:latest && docker run -p 50051:50051 --name aggregator-go_1 -d kalgg/aggregator-go:latest"
 
 workflows:
   version: 2.1
