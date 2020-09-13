@@ -6,7 +6,7 @@ executors:
     docker:
       - image: kalgg/aggregator-go-primary:0.0.2
 jobs:
-  build:
+  test:
     executor: docker-publisher
     working_directory: /go/src/github.com/kal-g/aggregator-go
     steps:
@@ -15,7 +15,7 @@ jobs:
       - run: make test
       - run: make e2e_test
       - run: make benchmark
-  build-image:
+  build:
     executor: docker-publisher
     steps:
       - checkout
@@ -31,3 +31,9 @@ jobs:
           root: .
           paths:
             - ./image.tar
+workflows:
+  version: 2.1
+  build-master:
+    jobs:
+      - test
+      - build
