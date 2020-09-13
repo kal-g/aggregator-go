@@ -1,4 +1,10 @@
-version: 2
+version: 2.1
+executors:
+  docker-publisher:
+    environment:
+      IMAGE_NAME: kalgg/aggregator-go
+    docker:
+      - image: circleci/buildpack-deps:stretch
 jobs:
   build:
     docker:
@@ -10,3 +16,19 @@ jobs:
       - run: make test
       - run: make e2e_test
       - run: make benchmark
+  build-image:
+    executor: docker-publisher
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: |
+            docker build -t $IMAGE_NAME:latest config/docker/main
+      - run:
+          name: Archive Docker image
+          command: docker save -o image.tar $IMAGE_NAME
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./image.tar
