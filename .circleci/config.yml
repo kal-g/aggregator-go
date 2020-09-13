@@ -15,31 +15,29 @@ jobs:
       - run: make test
       - run: make e2e_test
       - run: make benchmark
-  build_image:
+  build_image_and_push:
     executor: docker-publisher
     steps:
       - checkout:
           path: aggregator-go
       - setup_remote_docker:
           version: 18.09.3
-      - run: ls
-      - run: pwd
       - run:
           name: Build Docker image
           command: |
-            docker build -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
-      - run:
-          name: Archive Docker image
-          command: docker save -o image.tar $IMAGE_NAME
-      - persist_to_workspace:
-          root: .
-          paths:
-            - ./image.tar
+            TAG=0.1.$CIRCLE_BUILD_NUM
+            docker build -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            docker push $IMAGE_NAME:latest
 workflows:
   version: 2.1
   build-master:
     jobs:
       - test
-      - build_image:
+      - build_image_and_push:
           requires:
             - test
+          filters:
+            branches:
+              only:
+                - master
