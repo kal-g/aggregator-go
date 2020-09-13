@@ -18,7 +18,8 @@ jobs:
   build_image:
     executor: docker-publisher
     steps:
-      - checkout "aggregator-go"
+      - checkout:
+          path: aggregator-go
       - setup_remote_docker
       - run: ls
       - run:
