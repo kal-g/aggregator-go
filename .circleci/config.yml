@@ -31,6 +31,7 @@ jobs:
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             docker push $IMAGE_NAME
   deploy:
+    executor: docker-publisher
     steps:
       - add_ssh_keys:
           fingerprints:
