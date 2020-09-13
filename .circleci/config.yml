@@ -4,7 +4,7 @@ executors:
     environment:
       IMAGE_NAME: kalgg/aggregator-go
     docker:
-      - image: kalgg/aggregator-go-primary:0.0.2
+      - image: kalgg/aggregator-go-build:0.0.1
 jobs:
   test:
     executor: docker-publisher
