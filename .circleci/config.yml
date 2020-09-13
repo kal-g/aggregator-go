@@ -15,7 +15,7 @@ jobs:
       - run: make test
       - run: make e2e_test
       - run: make benchmark
-  build:
+  build_image:
     executor: docker-publisher
     steps:
       - checkout
@@ -36,4 +36,6 @@ workflows:
   build-master:
     jobs:
       - test
-      - build
+      - build_image
+        requires:
+          - test
