@@ -55,4 +55,4 @@ workflows:
                 #- master
       - deploy:
           requires:
-            - test
+            - build_image_and_push
