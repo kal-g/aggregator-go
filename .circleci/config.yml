@@ -101,7 +101,7 @@ workflows:
             - test
       - e2e_test:
         requires:
-          - build_e2e_test
+            - build_e2e_test
       - push_image:
           requires:
             - build_image
