@@ -121,9 +121,9 @@ workflows:
               only:
                 - master
       - deploy:
-        requires:
-          - push_image
-        filters:
-          branches:
-            only:
-              - master
+          requires:
+            - push_image
+          filters:
+            branches:
+              only:
+                - master
