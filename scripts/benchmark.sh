@@ -33,9 +33,9 @@ echo $parsedCount
 echo -n "End Time "
 echo $END_TS
 echo -n "RPS "
-parsedEnd=`echo $END_TS | egrep -o [0-9]*`
-parsedInit=`echo $INIT_TS | egrep -o [0-9]*`
-echo -n "Parsed end time"
+parsedEnd=`echo $END_TS | egrep -o ^[0-9]*`
+parsedInit=`echo $INIT_TS | egrep -o ^[0-9]*`
+echo -n "Parsed end time "
 echo $parsedEnd
 echo "$parsedCount / ($parsedEnd - $parsedInit)" | bc -l
 
