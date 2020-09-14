@@ -10,7 +10,7 @@ type StorageResult struct {
 // Should be threadsafe via lock / unlock
 type AbstractStorage interface {
 	Get(string) StorageResult
-	Put(string, int)
+	IncrBy(string, int)
 	Lock(string)
 	Unlock(string)
 }

@@ -1,5 +1,5 @@
 #! /bin/bash
-
+set -e
 ./bin/aggregator "bin/rocksdb_storage" &>bin/writer_logs &
 
 sleep 0.1
@@ -16,7 +16,7 @@ echo "Number of concurrent clients: $num_clients"
 INIT_TS=`date +%s.%N`
 for run in $(seq 1 $num_clients)
 do
-  ./bin/test_client 10000 &>bin/client_logs/$run &
+  ./bin/test_client 1000 &>bin/client_logs/$run &
   pids[${run}]=$!
 done
 
@@ -26,13 +26,18 @@ done
 END_TS=`date +%s.%N`
 
 sleep 1
-count=`./bin/storage_reader test:1:2`
+count=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
+parsedCount=`echo $count | egrep -o Count.* | egrep -o [0-9][0-9]*`
 echo -n "Count "
-echo $count
+echo $parsedCount
+echo -n "End Time "
+echo $END_TS
 echo -n "RPS "
-echo "$count / ($END_TS - $INIT_TS)" | bc -l
+parsedEnd=`echo $END_TS | egrep -o ^[0-9]*`
+parsedInit=`echo $INIT_TS | egrep -o ^[0-9]*`
+echo -n "Parsed end time "
+echo $parsedEnd
+echo "$parsedCount / ($parsedEnd - $parsedInit)" | bc -l
 
-
-pkill test_client
-pkill aggregator
-rm -rf bin/rocksdb_storage
+pkill -f aggregator
+echo "Benchmark finished"

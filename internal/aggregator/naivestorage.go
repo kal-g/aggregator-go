@@ -26,9 +26,13 @@ func (s naiveStorage) Get(key string) StorageResult {
 	return StorageResult{Value: val, ErrCode: 0}
 }
 
-// Put value
-func (s naiveStorage) Put(key string, val int) {
-	s.data[key] = val
+// IncrBy value
+func (s naiveStorage) IncrBy(key string, incr int) {
+	_, keyExists := s.data[key]
+	if !keyExists {
+		s.data[key] = 0
+	}
+	s.data[key] = s.data[key] + incr
 }
 
 // Lock storage
