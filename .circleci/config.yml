@@ -17,7 +17,6 @@ jobs:
   build_image:
     executor: docker-publisher
     environment:
-      TAG: 0.1.$CIRCLE_BUILD_NUM
     steps:
       - checkout:
           path: aggregator-go
@@ -27,6 +26,7 @@ jobs:
       - run:
           name: Build Docker image
           command: |
+            TAG=0.1.$CIRCLE_WORKFLOW_ID
             docker buildx build --platform linux/amd64,linux/arm/v7 -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
       - run:
           name: Archive Docker image
@@ -84,6 +84,7 @@ jobs:
       - run:
           name: Push Docker image
           command: |
+            TAG=0.1.$CIRCLE_WORKFLOW_ID
             docker load -i /tmp/workspace/image.tar
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             docker push $IMAGE_NAME:latest
