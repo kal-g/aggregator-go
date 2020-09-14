@@ -1,5 +1,5 @@
 
-all: aggregator test_client storage_reader
+all: aggregator test_client
 
 aggregator:
 	@mkdir -p bin
