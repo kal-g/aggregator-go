@@ -1,5 +1,5 @@
 #! /bin/bash
-
+set -e
 function end {
   pkill -f aggregator
   exit 1
