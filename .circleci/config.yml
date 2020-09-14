@@ -28,7 +28,7 @@ jobs:
             docker build -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
       - run:
           name: Archive Docker image
-          command: docker save -o image.tar $IMAGE_NAME
+          command: docker save -o image.tar $IMAGE_NAME:latest
       - persist_to_workspace:
           root: .
           paths:
@@ -46,7 +46,7 @@ jobs:
             docker build -t $IMAGE_NAME:e2e -f aggregator-go/config/docker/benchmark/Dockerfile .
       - run:
           name: Archive Docker image
-          command: docker save -o image.tar $IMAGE_NAME
+          command: docker save -o e2e.tar $IMAGE_NAME:e2e
       - persist_to_workspace:
           root: .
           paths:
