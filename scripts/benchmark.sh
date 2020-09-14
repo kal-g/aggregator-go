@@ -1,5 +1,5 @@
 #! /bin/bash
-
+set -e
 ./bin/aggregator "bin/rocksdb_storage" &>bin/writer_logs &
 
 sleep 0.1
