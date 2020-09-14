@@ -50,9 +50,14 @@ func (s RocksDBStorage) Get(key string) StorageResult {
 	return StorageResult{Value: value, ErrCode: 0}
 }
 
-// Put for storage
-func (s RocksDBStorage) Put(key string, val int) {
-	s.db.Put(gorocksdb.NewDefaultWriteOptions(), []byte(key), []byte(strconv.Itoa(val)))
+// IncrBy for storage
+func (s RocksDBStorage) IncrBy(key string, incr int) {
+	res := s.Get(key)
+	value := 0
+	if res.ErrCode == 0 {
+		value = res.Value
+	}
+	s.db.Put(gorocksdb.NewDefaultWriteOptions(), []byte(key), []byte(strconv.Itoa(incr+value)))
 }
 
 // Lock for storage per namespace

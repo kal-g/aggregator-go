@@ -37,16 +37,9 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
 
-	initialValue := int(0)
-	if r.ErrCode == 0 {
-		initialValue = r.Value
-	}
-
 	if r.ErrCode == 1 {
 		isNew = true
 	}
-
-	metric := mc.initMetricByType(initialValue)
 
 	// Determine how much to increment metric by
 	incrementBy := int(1)
@@ -54,11 +47,8 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 		incrementBy = event.GetDataField(mc.CountField).(int)
 	}
 
-	// Increment the metric
-	metric.Increment(incrementBy)
-
 	// Put back in storage
-	mc.Storage.Put(storageKey, metric.GetValue())
+	mc.Storage.IncrBy(storageKey, incrementBy)
 	mc.Storage.Unlock(mc.Namespace)
 	return noError, isNew
 
@@ -83,10 +73,4 @@ func getMetricStorageKey(key int, metricID int, namespace string) string {
 	// Key of a metric is the id + the type + the key field
 	mk := namespace + ":" + strconv.Itoa(metricID) + ":" + strconv.Itoa(key)
 	return mk
-}
-
-func (mc metricConfig) initMetricByType(val int) abstractMetric {
-	return &countMetric{
-		count: val,
-	}
 }

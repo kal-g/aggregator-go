@@ -8,13 +8,13 @@ import (
 
 func TestNaiveStorage1(t *testing.T) {
 	ns := newNaiveStorage()
-	ns.Put("testKey", 1)
+	ns.IncrBy("testKey", 1)
 	ct.AssertEqual(t, ns.Get("testKey").Value, 1)
 }
 
 func TestNaiveStorage2(t *testing.T) {
 	ns := newNaiveStorage()
-	ns.Put("testKey", 1)
-	ns.Put("testKey", 5)
-	ct.AssertEqual(t, ns.Get("testKey").Value, 5)
+	ns.IncrBy("testKey", 1)
+	ns.IncrBy("testKey", 5)
+	ct.AssertEqual(t, ns.Get("testKey").Value, 6)
 }
