@@ -100,7 +100,7 @@ workflows:
           requires:
             - test
       - e2e_test:
-        requires:
+          requires:
             - build_e2e_test
       - push_image:
           requires:
