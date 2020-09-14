@@ -33,7 +33,6 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 
 	// Get metric from storage, or initialize if it doesn't exist
 	mc.Storage.Lock(mc.Namespace)
-
 	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
 

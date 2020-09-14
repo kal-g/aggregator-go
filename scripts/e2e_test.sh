@@ -2,7 +2,6 @@
 
 function end {
   pkill -f aggregator
-  rm -rf bin/rocksdb_storage
   exit 1
 }
 
@@ -19,7 +18,6 @@ done
 for pid in ${pids[*]}; do
     wait $pid
 done
-sleep 1
 
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
 echo "Namespace count was" $namespaceCount
@@ -61,5 +59,4 @@ fi
 
 sleep 0.1
 pkill -f aggregator
-rm -rf bin/rocksdb_storage
 exit 0

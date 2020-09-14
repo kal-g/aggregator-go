@@ -14,7 +14,7 @@ type Service struct {
 
 // MakeNewService creates and initializes the aggregator service
 func MakeNewService(rocksDBPath string) Service {
-	storage := agg.NewRocksDBStorage(rocksDBPath)
+	storage := agg.NewRedisStorage("localhost:6379")
 	nsm := agg.NSMFromRaw(getConfigText(), storage)
 	engine := agg.NewEngine(&nsm)
 	svc := Service{e: engine}
