@@ -47,16 +47,5 @@ then
   end
 fi
 
-echo "Test passed"
-
-M=`pgrep go_writer`
-if [ `echo $M` ]
-then
-  echo "Warning: clients still running"
-  echo $M
-  pkill -f go_writer
-fi
-
-sleep 0.1
 pkill -f aggregator
-exit 0
+echo "Test passed"
