@@ -89,9 +89,6 @@ workflows:
   build-master:
     jobs:
       - test
-      - build_image:
-          requires:
-            - test
       - build_e2e_test:
           requires:
             - test
