@@ -98,7 +98,7 @@ workflows:
       - e2e_test:
           requires:
             - build_e2e_test
-      - build_and_push_image:
+      - build_and_push_image
           #filters:
           #  branches:
           #    only:
