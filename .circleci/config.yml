@@ -14,7 +14,7 @@ jobs:
       - run: go get -v -t -d ./...
       - run: make
       - run: make test
-  build_image:
+  build_and_push_image:
     executor: docker-publisher
     environment:
     steps:
@@ -26,8 +26,9 @@ jobs:
       - run:
           name: Build Docker image
           command: |
-            TAG=0.1.$CIRCLE_WORKFLOW_ID
-            docker buildx build --platform linux/amd64,linux/arm/v7 -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
+            TAG=0.1.$CIRCLE_BUILD_NUM
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            docker buildx build --platform linux/amd64,linux/arm/v7 -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest --push -f aggregator-go/config/docker/main/Dockerfile .
       - run:
           name: Archive Docker image
           command: docker save -o image.tar $IMAGE_NAME:latest
@@ -72,23 +73,6 @@ jobs:
           name: Start test
           command: |
             docker run --network container:redis $IMAGE_NAME:e2e
-  push_image:
-    executor: docker-publisher
-    steps:
-      - checkout:
-          path: aggregator-go
-      - setup_remote_docker:
-          version: 18.09.3
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Push Docker image
-          command: |
-            TAG=0.1.$CIRCLE_WORKFLOW_ID
-            docker load -i /tmp/workspace/image.tar
-            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            docker push $IMAGE_NAME:latest
-            docker push $IMAGE_NAME:$TAG
   deploy:
     executor: docker-publisher
     steps:
@@ -114,16 +98,14 @@ workflows:
       - e2e_test:
           requires:
             - build_e2e_test
-      - push_image:
-          requires:
-            - build_image
-          filters:
-            branches:
-              only:
-                - master
+      - build_and_push_image:
+          #filters:
+          #  branches:
+          #    only:
+          #      - master
       - deploy:
           requires:
-            - push_image
+            - build_and_push_image
           filters:
             branches:
               only:
