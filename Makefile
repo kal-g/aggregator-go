@@ -1,5 +1,5 @@
 
-all: aggregator test_client storage_reader
+all: aggregator test_client
 
 aggregator:
 	@mkdir -p bin
@@ -8,10 +8,6 @@ aggregator:
 test_client:
 	@mkdir -p bin
 	@go build -o bin/test_client cmd/test_client/main.go
-
-storage_reader:
-	@mkdir -p bin
-	@go build -o bin/storage_reader cmd/storage_reader/main.go 
 
 clean:
 	@rm -rf bin

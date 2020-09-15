@@ -16,7 +16,7 @@ echo "Number of concurrent clients: $num_clients"
 INIT_TS=`date +%s.%N`
 for run in $(seq 1 $num_clients)
 do
-  ./bin/test_client 1000 &>bin/client_logs/$run &
+  ./bin/test_client 10000 &>bin/client_logs/$run &
   pids[${run}]=$!
 done
 

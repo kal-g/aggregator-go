@@ -4,7 +4,7 @@ executors:
     environment:
       IMAGE_NAME: kalgg/aggregator-go
     docker:
-      - image: kalgg/aggregator-go-build:0.0.1
+      - image: kalgg/aggregator-go-build:0.0.5
 jobs:
   test:
     executor: docker-publisher
@@ -14,18 +14,21 @@ jobs:
       - run: go get -v -t -d ./...
       - run: make
       - run: make test
-  build_image:
+  build_and_push_image:
     executor: docker-publisher
+    environment:
     steps:
       - checkout:
           path: aggregator-go
       - setup_remote_docker:
           version: 18.09.3
+      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
       - run:
           name: Build Docker image
           command: |
             TAG=0.1.$CIRCLE_BUILD_NUM
-            docker build -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest -f aggregator-go/config/docker/main/Dockerfile .
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            docker buildx build --platform linux/amd64,linux/arm/v7 -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest --push -f aggregator-go/config/docker/main/Dockerfile .
       - run:
           name: Archive Docker image
           command: docker save -o image.tar $IMAGE_NAME:latest
@@ -70,41 +73,36 @@ jobs:
           name: Start test
           command: |
             docker run --network container:redis $IMAGE_NAME:e2e
-          
-  push_image:
+  deploy:
     executor: docker-publisher
     steps:
-      - checkout:
-          path: aggregator-go
-      - setup_remote_docker:
-          version: 18.09.3
-      - attach_workspace:
-          at: /tmp/workspace
+      - add_ssh_keys:
+          fingerprints:
+            - "f4:04:5b:2a:c5:96:f8:60:7c:dc:96:c2:f7:35:d7:ab"
       - run:
-          name: Push Docker image
+          name: Deploy to Host RPI 1
           command: |
-            TAG=0.1.$CIRCLE_BUILD_NUM
-            docker load -i /tmp/workspace/image.tar
-            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            docker push $IMAGE_NAME:latest
-            docker push $IMAGE_NAME:$TAG
+            ssh -o StrictHostKeyChecking=no ubuntu@$HOST_RPI_1 "docker stop aggregator-go_1 && docker rm aggregator-go_1 && docker pull kalgg/aggregator-go:latest && docker run -p 50051:50051 --name aggregator-go_1 -d kalgg/aggregator-go:latest"
+          
 workflows:
   version: 2.1
   build-master:
     jobs:
       - test
-      - build_image:
-          requires:
-            - test
       - build_e2e_test:
           requires:
             - test
       - e2e_test:
           requires:
             - build_e2e_test
-      - push_image:
+      - build_and_push_image:
+          filters:
+            branches:
+              only:
+                - master
+      - deploy:
           requires:
-            - build_image
+            - build_and_push_image
           filters:
             branches:
               only:
