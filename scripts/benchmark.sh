@@ -1,6 +1,6 @@
 #! /bin/bash
 set -e
-./bin/aggregator "bin/rocksdb_storage" &>bin/writer_logs &
+./bin/aggregator "localhost:6379" &>bin/writer_logs &
 
 sleep 0.1
 mkdir -p bin/client_logs
