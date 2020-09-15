@@ -28,7 +28,7 @@ jobs:
           command: |
             TAG=0.1.$CIRCLE_BUILD_NUM
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            docker buildx build --platform linux/amd64,linux/arm/v7 -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest --push -f aggregator-go/config/docker/main/Dockerfile .
+            docker buildx build --platform linux/amd64,linux/arm/v7,linux/arm64 -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest --push -f aggregator-go/config/docker/main/Dockerfile .
   build_e2e_test:
     executor: docker-publisher
     steps:
