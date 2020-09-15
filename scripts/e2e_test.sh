@@ -5,8 +5,8 @@ function end {
   exit 1
 }
 
-./bin/aggregator "bin/rocksdb_storage" @>bin/writer_logs &
-
+./bin/aggregator "localhost:6379" @>bin/writer_logs &
+echo "Starting test"
 sleep 0.1
 mkdir -p bin/client_logs
 for run in {1..10}

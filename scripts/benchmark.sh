@@ -1,6 +1,6 @@
 #! /bin/bash
 set -e
-./bin/aggregator "bin/rocksdb_storage" &>bin/writer_logs &
+./bin/aggregator "localhost:6379" &>bin/writer_logs &
 
 sleep 0.1
 mkdir -p bin/client_logs
@@ -30,13 +30,9 @@ count=`curl -s --header "Content-Type: application/json" --request POST --data '
 parsedCount=`echo $count | egrep -o Count.* | egrep -o [0-9][0-9]*`
 echo -n "Count "
 echo $parsedCount
-echo -n "End Time "
-echo $END_TS
 echo -n "RPS "
 parsedEnd=`echo $END_TS | egrep -o ^[0-9]*`
 parsedInit=`echo $INIT_TS | egrep -o ^[0-9]*`
-echo -n "Parsed end time "
-echo $parsedEnd
 echo "$parsedCount / ($parsedEnd - $parsedInit)" | bc -l
 
 pkill -f aggregator

@@ -7,4 +7,4 @@ RUN make
 
 EXPOSE 50051
 
-ENTRYPOINT ./bin/aggregator "bin/rocksdb_storage"
+ENTRYPOINT ./bin/aggregator "redis:6379
