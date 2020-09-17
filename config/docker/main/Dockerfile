@@ -7,4 +7,4 @@ RUN make
 
 EXPOSE 50051
 
-ENTRYPOINT ./bin/aggregator "redis:6379"
+ENTRYPOINT ["./bin/aggregator"]
