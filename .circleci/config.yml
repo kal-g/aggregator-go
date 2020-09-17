@@ -75,8 +75,7 @@ jobs:
       - run:
           name: Deploy to Host RPI 1
           command: |
-            ssh -o StrictHostKeyChecking=no ubuntu@$HOST_RPI_1 "docker stop agg && docker rm agg && docker pull kalgg/aggregator-go:latest && docker run --network agg-net -p 50051:50051 --name agg -d kalgg/aggregator-go:latest"
-          
+            ssh -o StrictHostKeyChecking=no ubuntu@$HOST_RPI_1 "echo test"
 workflows:
   version: 2.1
   build-master:
