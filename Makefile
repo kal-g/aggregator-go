@@ -22,6 +22,9 @@ benchmark: all
 	@./scripts/benchmark.sh 1
 	@./scripts/benchmark.sh 3
 
+start-redis:
+	docker run -p 6379:6379 -d redis
+
 run_benchmark: all
 	$(eval IMG=$(shell sh -c "docker build --no-cache -q config/docker/benchmark"))
 	@docker run -it $(IMG)
