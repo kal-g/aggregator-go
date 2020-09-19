@@ -13,9 +13,9 @@ type RedisStorage struct {
 	mtx *sync.Mutex
 }
 
-func NewRedisStorage(addr string) *RedisStorage {
+func NewRedisStorage(redisURL string) *RedisStorage {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     addr,
+		Addr:     redisURL,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
