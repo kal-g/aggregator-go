@@ -5,7 +5,8 @@ function end {
   exit 1
 }
 
-./bin/aggregator "localhost:6379" @>bin/writer_logs &
+export REDIS_URL="localhost:6379"
+./bin/aggregator @>bin/writer_logs &
 echo "Starting test"
 sleep 0.1
 mkdir -p bin/client_logs

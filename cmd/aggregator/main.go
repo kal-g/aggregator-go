@@ -21,7 +21,7 @@ const (
 )
 
 type configEnv struct {
-	Port     string `env:"PORT_NUMBER" envDefault:"50051"`
+	Port     int    `env:"PORT_NUMBER" envDefault:"50051"`
 	RedisURL string `env:"REDIS_URL,required"`
 	ZkURL    string `env:"ZOOKEEPER_URL"`
 }
@@ -32,7 +32,7 @@ func main() {
 		panic(err)
 	}
 
-	svc := service.MakeNewService(cfg.RedisURL)
+	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL)
 
 	r := mux.NewRouter()
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")

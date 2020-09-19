@@ -1,10 +1,10 @@
 package zkManager
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-zookeeper/zk"
+	"github.com/rs/zerolog/log"
 )
 
 type ZkManager struct {
@@ -14,7 +14,7 @@ type ZkManager struct {
 
 func MakeNewZkManager(zkURL string) *ZkManager {
 	if zkURL == "" {
-		fmt.Printf("Starting in local only mode\n")
+		log.Info().Msgf("Local only mode")
 		return &ZkManager{
 			c:             nil,
 			localOnlyMode: true,
