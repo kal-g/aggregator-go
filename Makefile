@@ -22,8 +22,14 @@ benchmark: all
 	@./scripts/benchmark.sh 1
 	@./scripts/benchmark.sh 3
 
-start-redis:
+start_redis:
 	docker run -p 6379:6379 -d redis
+
+start_zk:
+	docker run -p 2181:2181 -d zookeeper
+
+run: all
+	NODE_NAME=agg REDIS_URL=localhost:6379 ZOOKEEPER_URL=localhost:2181 ./bin/aggregator
 
 run_benchmark: all
 	$(eval IMG=$(shell sh -c "docker build --no-cache -q config/docker/benchmark"))

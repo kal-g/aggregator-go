@@ -11,6 +11,7 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/gorilla/mux"
 	"github.com/kal-g/aggregator-go/internal/service"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,17 +23,21 @@ const (
 
 type configEnv struct {
 	Port     int    `env:"PORT_NUMBER" envDefault:"50051"`
+	NodeName string `env:"NODE_NAME,required"`
 	RedisURL string `env:"REDIS_URL,required"`
 	ZkURL    string `env:"ZOOKEEPER_URL"`
 }
 
+var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "SVC").Logger()
+
 func main() {
+  zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	var cfg configEnv
 	if err := env.Parse(&cfg); err != nil {
 		panic(err)
 	}
 
-	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL)
+	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName)
 
 	r := mux.NewRouter()
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")
@@ -51,7 +56,7 @@ func main() {
 
 	// Start server
 	go func() {
-		log.Info().Msgf("Starting up server on port %d ...", cfg.Port)
+		logger.Info().Msgf("Starting up server on port %d ...", cfg.Port)
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("The server was unable to start up or continue to run.")
 		}
@@ -59,9 +64,9 @@ func main() {
 
 	// Wait for signals
 	sig := <-sigs
-	log.Info().Msgf("Shutting down server due to receiving a signal of %s ...", sig)
+	logger.Info().Msgf("Shutting down server due to receiving a signal of %s ...", sig)
 	if err := server.Shutdown(context.Background()); err != nil {
 		log.Err(err).Msg("There was a problem trying to shutdown the server.")
 	}
-	log.Info().Msg("The server has been shutdown.")
+	logger.Info().Msg("The server has been shutdown.")
 }
