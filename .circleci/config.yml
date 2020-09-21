@@ -3,6 +3,7 @@ executors:
   docker-publisher:
     environment:
       IMAGE_NAME: kalgg/aggregator-go
+      GO111MODULE: "on"
     docker:
       - image: kalgg/aggregator-go-build:0.0.5
     working_directory: ~/agg
