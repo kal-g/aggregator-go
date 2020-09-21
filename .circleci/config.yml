@@ -9,7 +9,6 @@ executors:
 jobs:
   test:
     executor: docker-publisher
-    working_directory: /go/src/github.com/kal-g/aggregator-go
     steps:
       - checkout
       - run: go get -v -t -d ./...
