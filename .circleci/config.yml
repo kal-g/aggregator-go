@@ -5,6 +5,7 @@ executors:
       IMAGE_NAME: kalgg/aggregator-go
     docker:
       - image: kalgg/aggregator-go-build:0.0.5
+    working_directory: ~/agg
 jobs:
   test:
     executor: docker-publisher
