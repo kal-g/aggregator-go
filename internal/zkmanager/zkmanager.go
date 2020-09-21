@@ -55,7 +55,6 @@ func MakeNewZkManager(zkURL string, nodeName string) *ZkManager {
 		panic(err)
 	}
 
-
 	zkm := &ZkManager{
 		c:             c,
 		localOnlyMode: false,
@@ -119,6 +118,7 @@ func (zkm *ZkManager) LeaderElection() {
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
 	} else {
+		logger.Info().Msgf("Not leader, setting up leader watch")
 		// TODO
 		// If not leader, setup watcher on next smallest node
 	}
