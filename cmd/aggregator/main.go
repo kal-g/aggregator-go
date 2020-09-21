@@ -31,8 +31,7 @@ type configEnv struct {
 var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "SVC").Logger()
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
+  zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	var cfg configEnv
 	if err := env.Parse(&cfg); err != nil {
 		panic(err)

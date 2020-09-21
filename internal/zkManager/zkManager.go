@@ -50,9 +50,11 @@ func MakeNewZkManager(zkURL string, nodeName string) *ZkManager {
 	l := ZkLogger{}
 	opt := zk.WithLogger(l)
 	c, _, err := zk.Connect([]string{zkURL}, time.Second, opt)
+
 	if err != nil {
 		panic(err)
 	}
+
 
 	zkm := &ZkManager{
 		c:             c,

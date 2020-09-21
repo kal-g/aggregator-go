@@ -5,7 +5,7 @@ import (
 	"log"
 
 	agg "github.com/kal-g/aggregator-go/internal/aggregator"
-	zkmanager "github.com/kal-g/aggregator-go/internal/zkmanager"
+	"github.com/kal-g/aggregator-go/internal/zkmanager"
 )
 
 // Service contains the complete running aggregator service
@@ -25,9 +25,8 @@ func MakeNewService(redisURL string, zkURL string, nodeName string) Service {
 		e:        engine,
 		zkm:      zkm,
 		nodeName: nodeName,
-	}
-	return svc
-}
+
+  }
 
 func getConfigText() []byte {
 	content, err := ioutil.ReadFile("config/example")
