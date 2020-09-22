@@ -1,6 +1,7 @@
-package zkmanager
+package zk
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -20,6 +21,11 @@ type ZkManager struct {
 	currVote      string
 	isLeader      bool
 	logger        zerolog.Logger
+	watchNodeChan <-chan zk.Event
+}
+
+type AggNodeStatus struct {
+	isReady bool
 }
 
 var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "ZK").Logger()
@@ -45,6 +51,7 @@ func MakeNewZkManager(zkURL string, nodeName string) *ZkManager {
 			nodeName:      nodeName,
 			isLeader:      false,
 			logger:        logger,
+			watchNodeChan: nil,
 		}
 	}
 	l := ZkLogger{}
@@ -61,9 +68,10 @@ func MakeNewZkManager(zkURL string, nodeName string) *ZkManager {
 		nodeName:      nodeName,
 		isLeader:      false,
 		logger:        logger,
+		watchNodeChan: nil,
 	}
 	zkm.Setup()
-	zkm.LeaderElection()
+	go zkm.LeaderElection()
 	return zkm
 }
 
@@ -87,8 +95,15 @@ func (zkm ZkManager) Setup() {
 	}
 
 	// Register Node
+	status := AggNodeStatus{
+		isReady: true,
+	}
+	statusData, err := json.Marshal(status)
+	if err != nil {
+		panic(err)
+	}
 	path := fmt.Sprintf("/nodes/%s", zkm.nodeName)
-	_, err = zkm.c.Create(path, []byte{}, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+	_, err = zkm.c.Create(path, statusData, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if errors.Is(err, zk.ErrNodeExists) {
 			logger.Error().Msgf("Node %s already exists in cluster", zkm.nodeName)
@@ -112,6 +127,9 @@ func (zkm *ZkManager) LeaderElection() {
 
 	// Check election results
 	votes, _, err := zkm.c.Children("/election")
+	if err != nil {
+		panic(err)
+	}
 	sort.Strings(votes)
 	if votes[0] == zkm.currVote {
 		// If smallest vote, become leader
@@ -121,12 +139,67 @@ func (zkm *ZkManager) LeaderElection() {
 		logger.Info().Msgf("Not leader, setting up leader watch")
 		// TODO
 		// If not leader, setup watcher on next smallest node
+		watchChan := zkm.getWatchNodeChannel(votes)
+		zkm.watchNextNode(watchChan)
 	}
 }
 
-// TODO Register for changes in namespace map
+func (zkm *ZkManager) getWatchNodeChannel(votes []string) <-chan zk.Event {
+	watchVote := ""
+	for i, v := range votes {
+		if v == zkm.currVote {
+			if i != 0 {
+				watchVote = votes[i-1]
+			} else {
+				panic("Something went wrong with zk")
+			}
+		}
+	}
+	exists, _, watchEvent, err := zkm.c.ExistsW("/election/" + watchVote)
+	if !exists {
+		panic("ZK - node disappeared")
+	}
+	if err != nil {
+		panic(err)
+	}
+	logger.Info().Msgf("Watching vote %s", watchVote)
+	return watchEvent
+}
+
+func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
+	if zkm.watchNodeChan != nil {
+		panic("Zk - Already watching")
+	}
+	zkm.watchNodeChan = ch
+	e := <-zkm.watchNodeChan
+	if e.Type != zk.EventNodeDeleted {
+		panic("Zk - Invalid operation on vote")
+	}
+	logger.Info().Msgf("Detected node status change")
+	// Check votes
+	votes, _, err := zkm.c.Children("/election")
+	if err != nil {
+		panic(err)
+	}
+	sort.Strings(votes)
+
+	if votes[0] == zkm.currVote {
+		// If smallest vote, become leader
+		logger.Info().Msgf("Became leader")
+		zkm.isLeader = true
+		zkm.watchNodeChan = nil
+	} else {
+		logger.Info().Msgf("Not leader, setting up leader watch")
+		// If not leader, setup watcher on next smallest node
+		watchChan := zkm.getWatchNodeChannel(votes)
+		zkm.watchNodeChan = nil
+		zkm.watchNextNode(watchChan)
+	}
+}
 
 // TODO Master: Check connection to ZK
+
+// TODO Register for changes in namespace map
 
 // TODO Master: init namespace directory
 

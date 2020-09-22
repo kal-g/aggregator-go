@@ -5,13 +5,13 @@ import (
 	"log"
 
 	agg "github.com/kal-g/aggregator-go/internal/aggregator"
-	"github.com/kal-g/aggregator-go/internal/zkmanager"
+	"github.com/kal-g/aggregator-go/internal/zk"
 )
 
 // Service contains the complete running aggregator service
 type Service struct {
 	e        agg.Engine
-	zkm      *zkmanager.ZkManager
+	zkm      *zk.ZkManager
 	nodeName string
 }
 
@@ -20,7 +20,7 @@ func MakeNewService(redisURL string, zkURL string, nodeName string) Service {
 	storage := agg.NewRedisStorage(redisURL)
 	nsm := agg.NSMFromRaw(getConfigText(), storage)
 	engine := agg.NewEngine(&nsm)
-	zkm := zkmanager.MakeNewZkManager(zkURL, nodeName)
+	zkm := zk.MakeNewZkManager(zkURL, nodeName)
 	svc := Service{
 		e:        engine,
 		zkm:      zkm,
