@@ -3,12 +3,13 @@ executors:
   docker-publisher:
     environment:
       IMAGE_NAME: kalgg/aggregator-go
+      GO111MODULE: "on"
     docker:
       - image: kalgg/aggregator-go-build:0.0.5
+    working_directory: ~/agg
 jobs:
   test:
     executor: docker-publisher
-    working_directory: /go/src/github.com/kal-g/aggregator-go
     steps:
       - checkout
       - run: go get -v -t -d ./...
@@ -65,7 +66,7 @@ jobs:
       - run:
           name: Start test
           command: |
-            docker run --network container:redis $IMAGE_NAME:e2e
+            docker run --network container:redis -e NODE_NAME=agg -e REDIS_URL=redis:6379 $IMAGE_NAME:e2e
   deploy:
     executor: docker-publisher
     steps:
