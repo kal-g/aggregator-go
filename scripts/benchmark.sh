@@ -4,7 +4,7 @@ set -e
 export REDIS_URL="localhost:6379"
 ./bin/aggregator &>bin/writer_logs &
 
-sleep 0.1
+sleep 3
 mkdir -p bin/client_logs
 
 if [ "$1" != "" ]; then
@@ -27,7 +27,7 @@ for pid in ${pids[*]}; do
     wait $pid
 done
 
-sleep 10
+sleep 1
 
 for run in $(seq 1 $num_clients); do
     wc -l bin/client_logs/$run
