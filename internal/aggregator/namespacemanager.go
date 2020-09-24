@@ -15,8 +15,7 @@ type NamespaceManager struct {
 	EventConfigs     []*eventConfig
 	MetricConfigs    []*metricConfig
 	storage          AbstractStorage
-	nsDataLck        map[string]*sync.RWMutex
-	MetaMtx          *sync.Mutex
+	nsLck            *sync.RWMutex
 	EventMap         map[int]*eventConfig
 	MetricMap        map[string]map[int]*metricConfig
 	EventToMetricMap map[string]map[int][]*metricConfig
@@ -32,8 +31,7 @@ func NSMFromRaw(input []byte, storage AbstractStorage) NamespaceManager {
 		EventConfigs:  extractEventConfigs(doc),
 		MetricConfigs: extractMetricConfigs(doc, storage),
 		storage:       storage,
-		nsDataLck:     map[string]*sync.RWMutex{},
-		MetaMtx:       &sync.Mutex{},
+		nsLck:         &sync.RWMutex{},
 	}
 	nsm.initConfigMaps()
 	return nsm
@@ -45,8 +43,7 @@ func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractSto
 		EventConfigs:  ecs,
 		MetricConfigs: mcs,
 		storage:       storage,
-		nsDataLck:     map[string]*sync.RWMutex{},
-		MetaMtx:       &sync.Mutex{},
+		nsLck:         &sync.RWMutex{},
 	}
 	nsm.initConfigMaps()
 	return nsm
@@ -189,41 +186,17 @@ func extractMetricFilters(filt []interface{}) abstractFilter {
 }
 
 func (nsm *NamespaceManager) namespaceRLock(ns string) {
-	_, exists := nsm.nsDataLck[ns]
-	if !exists {
-		// Get global lock, check for existence again
-		nsm.MetaMtx.Lock()
-		_, exists2 := nsm.nsDataLck[ns]
-		if !exists2 {
-			// Still doesn't exist, create
-			nsm.nsDataLck[ns] = &sync.RWMutex{}
-		}
-		nsm.MetaMtx.Unlock()
-	}
-	// Lock must exist at this point
-	nsm.nsDataLck[ns].RLock()
+	nsm.nsLck.RLock()
 }
 
 func (nsm *NamespaceManager) namespaceRUnlock(ns string) {
-	nsm.nsDataLck[ns].RUnlock()
+	nsm.nsLck.RUnlock()
 }
 
 func (nsm *NamespaceManager) namespaceWLock(ns string) {
-	_, exists := nsm.nsDataLck[ns]
-	if !exists {
-		// Get global lock, check for existence again
-		nsm.MetaMtx.Lock()
-		_, exists2 := nsm.nsDataLck[ns]
-		if !exists2 {
-			// Still doesn't exist, create
-			nsm.nsDataLck[ns] = &sync.RWMutex{}
-		}
-		nsm.MetaMtx.Unlock()
-	}
-	// Lock must exist at this point
-	nsm.nsDataLck[ns].Lock()
+	nsm.nsLck.Lock()
 }
 
 func (nsm *NamespaceManager) namespaceUnlock(ns string) {
-	nsm.nsDataLck[ns].Unlock()
+	nsm.nsLck.Unlock()
 }

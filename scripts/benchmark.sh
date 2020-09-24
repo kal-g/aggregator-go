@@ -23,6 +23,7 @@ do
 done
 
 for pid in ${pids[*]}; do
+    echo "Waiting on pid $pid"
     wait $pid
 done
 END_TS=`date +%s.%N`
