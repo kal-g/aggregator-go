@@ -197,12 +197,10 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 	}
 }
 
-// TODO Master: Check connection to ZK
+// TODO Init nodes to namespace
+
+// TODO Init namespace to node
 
 // TODO Register for changes in namespace map
-
-// TODO Master: init namespace directory
-
-// TODO Master: Check namespaces
 
 // TODO Master: Distribute namespaces
