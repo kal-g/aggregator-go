@@ -27,7 +27,7 @@ for pid in ${pids[*]}; do
     wait $pid
 done
 
-sleep 3
+sleep 10
 
 for run in $(seq 1 $num_clients); do
     wc -l bin/client_logs/$run
