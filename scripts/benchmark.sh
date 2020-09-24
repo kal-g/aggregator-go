@@ -27,7 +27,7 @@ for pid in ${pids[*]}; do
 done
 END_TS=`date +%s.%N`
 
-sleep 1
+sleep 3
 count=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
 parsedCount=`echo $count | egrep -o Count.* | egrep -o [0-9][0-9]*`
 echo -n "Count "
