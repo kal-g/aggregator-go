@@ -36,13 +36,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		namespace = nString
 	}
 
-	engineResult := agg.DeferredSuccess
-	if isVerbose {
-		engineResult = s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
-	} else {
-		go s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
-
-	}
+	engineResult := s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
 
 	consumeRes := ConsumeResult{
 		ErrorCode: engineResult,
