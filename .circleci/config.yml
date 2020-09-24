@@ -66,7 +66,7 @@ jobs:
       - run:
           name: Start test
           command: |
-            NODE_NAME=agg docker run --network container:redis $IMAGE_NAME:e2e
+            docker run --network container:redis -e NODE_NAME=agg -e REDIS_URL=redis:6379 $IMAGE_NAME:e2e
   deploy:
     executor: docker-publisher
     steps:
