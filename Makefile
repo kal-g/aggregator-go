@@ -16,10 +16,10 @@ test:
 	@go test ./...
 
 e2e_test: all
-	echo "noop"
-	#@./scripts/e2e_test.sh
+	@./scripts/e2e_test.sh
 
 benchmark: all
+	@./scripts/benchmark.sh 1
 	@./scripts/benchmark.sh 3
 
 start_redis:

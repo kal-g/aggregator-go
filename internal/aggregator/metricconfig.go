@@ -2,11 +2,7 @@ package aggregator
 
 import (
 	"strconv"
-
-	"github.com/rs/zerolog/log"
 )
-
-var count int = 0
 
 type metricConfig struct {
 	ID         int
@@ -37,10 +33,6 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 
 	// Get metric from storage, or initialize if it doesn't exist
 	mc.Storage.Lock(mc.Namespace)
-	count++
-	if count%1000 == 0 {
-		log.Info().Msgf("Count is %d", count)
-	}
 	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
 
