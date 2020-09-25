@@ -2,7 +2,11 @@ package aggregator
 
 import (
 	"strconv"
+
+	"github.com/rs/zerolog/log"
 )
+
+var count int = 0
 
 type metricConfig struct {
 	ID         int
@@ -24,6 +28,10 @@ type MetricCountResult struct {
 }
 
 func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
+	count++
+	if count%1000 == 0 {
+		log.Info().Msgf("Count is %d", count)
+	}
 	isNew := false
 	// Can assume that event is of the right type
 	// Check that the event passes the filter
