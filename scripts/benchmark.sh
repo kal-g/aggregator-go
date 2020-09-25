@@ -2,9 +2,9 @@
 set -e
 
 export REDIS_URL="localhost:6379"
-./bin/aggregator &>bin/writer_logs &
+./bin/aggregator >bin/writer_logs &
 
-sleep 0.1
+sleep 5
 mkdir -p bin/client_logs
 
 if [ "$1" != "" ]; then
@@ -18,7 +18,7 @@ echo "Number of concurrent clients: $num_clients"
 INIT_TS=`date +%s.%N`
 for run in $(seq 1 $num_clients)
 do
-  ./bin/test_client 10000 &>bin/client_logs/$run &
+  ./bin/test_client 2000 &>bin/client_logs/$run &
   pids[${run}]=$!
 done
 
