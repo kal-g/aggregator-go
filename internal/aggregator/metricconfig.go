@@ -28,10 +28,6 @@ type MetricCountResult struct {
 }
 
 func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
-	count++
-	if count%1000 == 0 {
-		log.Info().Msgf("Count is %d", count)
-	}
 	isNew := false
 	// Can assume that event is of the right type
 	// Check that the event passes the filter
@@ -41,6 +37,10 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 
 	// Get metric from storage, or initialize if it doesn't exist
 	mc.Storage.Lock(mc.Namespace)
+	count++
+	if count%1000 == 0 {
+		log.Info().Msgf("Count is %d", count)
+	}
 	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
 
