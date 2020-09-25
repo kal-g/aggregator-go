@@ -19,7 +19,6 @@ e2e_test: all
 	@./scripts/e2e_test.sh
 
 benchmark: all
-	@./scripts/benchmark.sh 1
 	@./scripts/benchmark.sh 3
 
 start_redis:
