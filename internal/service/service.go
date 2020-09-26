@@ -20,7 +20,7 @@ func MakeNewService(redisURL string, zkURL string, nodeName string) Service {
 	storage := agg.NewRedisStorage(redisURL)
 	nsm := agg.NSMFromRaw(getConfigText(), storage)
 	engine := agg.NewEngine(&nsm)
-	zkm := zk.MakeNewZkManager(zkURL, nodeName)
+	zkm := zk.MakeNewZkManager(zkURL, nodeName, &nsm)
 	svc := Service{
 		e:        engine,
 		zkm:      zkm,

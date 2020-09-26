@@ -23,11 +23,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(body, &bodyJSON)
 
 	// Check options
-	isVerbose := false
 	namespace := ""
-	if _, verbose := bodyJSON["verbose"]; verbose {
-		isVerbose = true
-	}
 	if n, namespaceSet := bodyJSON["namespace"]; namespaceSet {
 		nString, isString := n.(string)
 		if !isString {
@@ -36,13 +32,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		namespace = nString
 	}
 
-	engineResult := agg.DeferredSuccess
-	if isVerbose {
-		engineResult = s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
-	} else {
-		go s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
-
-	}
+	engineResult := s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
 
 	consumeRes := ConsumeResult{
 		ErrorCode: engineResult,

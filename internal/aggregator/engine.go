@@ -55,9 +55,9 @@ func (e Engine) handleEvent(event event, namespace string) EngineHandleResult {
 	for _, metricConfig := range metricConfigs {
 		_, isNew := metricConfig.handleEvent(event)
 		if isNew {
-			e.Nsm.MetaMtx.Lock()
+			e.Nsm.NsDataLck.Lock()
 			e.Nsm.NsMetaMap[metricConfig.Namespace].KeySizeMap[metricConfig.ID]++
-			e.Nsm.MetaMtx.Unlock()
+			e.Nsm.NsDataLck.Unlock()
 		}
 	}
 	e.Nsm.namespaceRUnlock("")
@@ -70,25 +70,33 @@ func (e Engine) handleEvent(event event, namespace string) EngineHandleResult {
 func (e Engine) getMetricConfigs(event event, namespace string) []*metricConfig {
 	configs := []*metricConfig{}
 
-	// First get all configs in global namespace
-	globalNamespace, globalNamespaceExists := e.Nsm.EventToMetricMap[""]
-	if globalNamespaceExists {
-		globalConfigs, globalConfigsExist := globalNamespace[event.ID]
-		if globalConfigsExist {
-			configs = append(configs, globalConfigs...)
+	// Check if global active on this node
+	e.Nsm.NsDataLck.RLock()
+	if _, exists := e.Nsm.NsMetaMap[""]; exists {
+		// Get all configs in global namespace
+		globalNamespace, globalNamespaceExists := e.Nsm.EventToMetricMap[""]
+		if globalNamespaceExists {
+			globalConfigs, globalConfigsExist := globalNamespace[event.ID]
+			if globalConfigsExist {
+				configs = append(configs, globalConfigs...)
+			}
 		}
 	}
 
 	// Then get all configs in the specified namespace
 	if namespace != "" {
-		specificNamespace, namespaceExists := e.Nsm.EventToMetricMap[namespace]
-		if namespaceExists {
-			namespaceConfigs, namespaceConfigsExist := specificNamespace[event.ID]
-			if namespaceConfigsExist {
-				configs = append(configs, namespaceConfigs...)
+		// Check if namespace active on this node
+		if _, exists := e.Nsm.NsMetaMap[namespace]; exists {
+			specificNamespace, namespaceExists := e.Nsm.EventToMetricMap[namespace]
+			if namespaceExists {
+				namespaceConfigs, namespaceConfigsExist := specificNamespace[event.ID]
+				if namespaceConfigsExist {
+					configs = append(configs, namespaceConfigs...)
+				}
 			}
 		}
 	}
+	e.Nsm.NsDataLck.RUnlock()
 	return configs
 }
 

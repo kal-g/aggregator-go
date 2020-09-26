@@ -15,8 +15,7 @@ type NamespaceManager struct {
 	EventConfigs     []*eventConfig
 	MetricConfigs    []*metricConfig
 	storage          AbstractStorage
-	nsDataLck        map[string]*sync.RWMutex
-	MetaMtx          *sync.Mutex
+	NsDataLck        *sync.RWMutex
 	EventMap         map[int]*eventConfig
 	MetricMap        map[string]map[int]*metricConfig
 	EventToMetricMap map[string]map[int][]*metricConfig
@@ -32,8 +31,7 @@ func NSMFromRaw(input []byte, storage AbstractStorage) NamespaceManager {
 		EventConfigs:  extractEventConfigs(doc),
 		MetricConfigs: extractMetricConfigs(doc, storage),
 		storage:       storage,
-		nsDataLck:     map[string]*sync.RWMutex{},
-		MetaMtx:       &sync.Mutex{},
+		NsDataLck:     &sync.RWMutex{},
 	}
 	nsm.initConfigMaps()
 	return nsm
@@ -45,29 +43,44 @@ func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractSto
 		EventConfigs:  ecs,
 		MetricConfigs: mcs,
 		storage:       storage,
-		nsDataLck:     map[string]*sync.RWMutex{},
-		MetaMtx:       &sync.Mutex{},
+		NsDataLck:     &sync.RWMutex{},
 	}
 	nsm.initConfigMaps()
 	return nsm
 }
 
-func (nsm *NamespaceManager) initConfigMaps() {
+func (nsm *NamespaceManager) ActivateNamespace(ns string) {
+	nsm.NsDataLck.Lock()
 
-	nsMetaMap := make(map[string]NamespaceMetadata)
-	nsMetaLocks := make(map[string]*sync.Mutex)
-	for _, mc := range nsm.MetricConfigs {
-		ns := mc.Namespace
-		_, exists := nsMetaMap[ns]
-		if !exists {
-			nsMetaMap[ns] = NamespaceMetadata{
-				KeySizeMap: map[int]int{},
-			}
-			nsMetaLocks[ns] = &sync.Mutex{}
-		}
-		nsMetaMap[ns].KeySizeMap[mc.ID] = 0
+	if _, exists := nsm.NsMetaMap[ns]; exists {
+		nsm.NsDataLck.Unlock()
+		return
 	}
 
+	nsm.NsMetaMap[ns] = NamespaceMetadata{
+		KeySizeMap: map[int]int{},
+	}
+
+	for _, mc := range nsm.MetricConfigs {
+		if ns == mc.Namespace {
+			// TODO init with old values
+			nsm.NsMetaMap[ns].KeySizeMap[mc.ID] = 0
+		}
+
+	}
+	nsm.NsDataLck.Unlock()
+}
+
+func (nsm *NamespaceManager) DeactivateNamespace(ns string) {
+	nsm.NsDataLck.Lock()
+	delete(nsm.NsMetaMap, ns)
+	nsm.NsDataLck.Unlock()
+}
+
+// TODO Add zombie state for namespace
+
+func (nsm *NamespaceManager) initConfigMaps() {
+	nsMetaMap := make(map[string]NamespaceMetadata)
 	eventMap := make(map[int]*eventConfig)
 
 	// Create a map from event id to event config
@@ -189,41 +202,17 @@ func extractMetricFilters(filt []interface{}) abstractFilter {
 }
 
 func (nsm *NamespaceManager) namespaceRLock(ns string) {
-	_, exists := nsm.nsDataLck[ns]
-	if !exists {
-		// Get global lock, check for existence again
-		nsm.MetaMtx.Lock()
-		_, exists2 := nsm.nsDataLck[ns]
-		if !exists2 {
-			// Still doesn't exist, create
-			nsm.nsDataLck[ns] = &sync.RWMutex{}
-		}
-		nsm.MetaMtx.Unlock()
-	}
-	// Lock must exist at this point
-	nsm.nsDataLck[ns].RLock()
+	nsm.NsDataLck.RLock()
 }
 
 func (nsm *NamespaceManager) namespaceRUnlock(ns string) {
-	nsm.nsDataLck[ns].RUnlock()
+	nsm.NsDataLck.RUnlock()
 }
 
 func (nsm *NamespaceManager) namespaceWLock(ns string) {
-	_, exists := nsm.nsDataLck[ns]
-	if !exists {
-		// Get global lock, check for existence again
-		nsm.MetaMtx.Lock()
-		_, exists2 := nsm.nsDataLck[ns]
-		if !exists2 {
-			// Still doesn't exist, create
-			nsm.nsDataLck[ns] = &sync.RWMutex{}
-		}
-		nsm.MetaMtx.Unlock()
-	}
-	// Lock must exist at this point
-	nsm.nsDataLck[ns].Lock()
+	nsm.NsDataLck.Lock()
 }
 
 func (nsm *NamespaceManager) namespaceUnlock(ns string) {
-	nsm.nsDataLck[ns].Unlock()
+	nsm.NsDataLck.Unlock()
 }
