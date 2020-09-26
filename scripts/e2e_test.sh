@@ -27,20 +27,6 @@ then
   end
 fi
 
-globalCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"metricKey":2,"metricID":1}' http://localhost:50051/count`
-echo "Global count was" $globalCount
-if [ $globalCount != "{\"ErrCode\":0,\"Count\":20000}" ]
-then
-  end
-fi
-
-globalInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":""}' http://localhost:50051/namespace/get_info`
-echo "Global info was" $globalInfo
-if [ $globalInfo != '{"error_code":0,"data":{"metric_keys":{"1":1}}}' ]
-then
-  end
-fi
-
 namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
 echo "Namespace info was" $namespaceInfo
 if [ $namespaceInfo != '{"error_code":0,"data":{"metric_keys":{"1":1}}}' ]
