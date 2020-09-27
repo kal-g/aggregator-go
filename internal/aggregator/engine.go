@@ -1,5 +1,13 @@
 package aggregator
 
+import (
+	"os"
+
+	"github.com/rs/zerolog"
+)
+
+var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "ENG").Logger()
+
 // Engine is the core calculcation engine for counting
 type Engine struct {
 	Nsm *NamespaceManager
@@ -63,7 +71,6 @@ func (e Engine) handleEvent(event event, namespace string) EngineHandleResult {
 func (e Engine) getMetricConfigs(event event, namespace string) []*metricConfig {
 	configs := []*metricConfig{}
 	e.Nsm.NsDataLck.RLock()
-
 	// Get all configs in the specified namespace
 	// Check if namespace active on this node
 	if _, exists := e.Nsm.NsMetaMap[namespace]; exists {

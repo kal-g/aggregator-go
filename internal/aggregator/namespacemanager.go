@@ -23,7 +23,7 @@ type NamespaceManager struct {
 }
 
 // NSMFromRaw creates a namespace manager from a byte stream
-func NSMFromRaw(input []byte, storage AbstractStorage) NamespaceManager {
+func NSMFromRaw(input []byte, storage AbstractStorage, singleNodeMode bool) NamespaceManager {
 	var doc map[string]interface{}
 	json.Unmarshal(input, &doc)
 
@@ -33,19 +33,19 @@ func NSMFromRaw(input []byte, storage AbstractStorage) NamespaceManager {
 		storage:       storage,
 		NsDataLck:     &sync.RWMutex{},
 	}
-	nsm.initConfigMaps()
+	nsm.initConfigMaps(singleNodeMode)
 	return nsm
 }
 
 // NSMFromConfigs creates a namespace manager from configs
-func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractStorage) NamespaceManager {
+func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractStorage, singleNodeMode bool) NamespaceManager {
 	nsm := NamespaceManager{
 		EventConfigs:  ecs,
 		MetricConfigs: mcs,
 		storage:       storage,
 		NsDataLck:     &sync.RWMutex{},
 	}
-	nsm.initConfigMaps()
+	nsm.initConfigMaps(singleNodeMode)
 	return nsm
 }
 
@@ -79,9 +79,22 @@ func (nsm *NamespaceManager) DeactivateNamespace(ns string) {
 
 // TODO Add zombie state for namespace
 
-func (nsm *NamespaceManager) initConfigMaps() {
+func (nsm *NamespaceManager) initConfigMaps(singleNodeMode bool) {
 	nsMetaMap := make(map[string]NamespaceMetadata)
 	eventMap := make(map[int]*eventConfig)
+
+	if singleNodeMode {
+		for _, mc := range nsm.MetricConfigs {
+			ns := mc.Namespace
+			_, exists := nsMetaMap[ns]
+			if !exists {
+				nsMetaMap[ns] = NamespaceMetadata{
+					KeySizeMap: map[int]int{},
+				}
+			}
+			nsMetaMap[ns].KeySizeMap[mc.ID] = 0
+		}
+	}
 
 	// Create a map from event id to event config
 	for _, eventConfig := range nsm.EventConfigs {

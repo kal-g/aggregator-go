@@ -33,17 +33,18 @@ func TestEngine(t *testing.T) {
 		KeyField:   "key",
 		CountField: "",
 		MetricType: countMetricType,
+		Namespace:  "global",
 		Filter:     NullFilter{},
 		Storage:    storage,
 	}
 	mcs := []*metricConfig{&mc}
-	parser := NSMFromConfigs(ecs, mcs, storage)
+	parser := NSMFromConfigs(ecs, mcs, storage, true)
 
 	// Create engine
 	engine := NewEngine(&parser)
 
 	// Handle a basic event
-	result := engine.HandleRawEvent(re, "")
+	result := engine.HandleRawEvent(re, "global")
 	assert.Equal(t, Success, result)
 
 	// Inspect the storage directly to check result
@@ -61,7 +62,7 @@ func TestNaiveE2E(t *testing.T) {
 
 func E2ETest(t *testing.T, storage AbstractStorage) {
 	input, _ := ioutil.ReadFile("../../config/example")
-	nsm := NSMFromRaw(input, storage)
+	nsm := NSMFromRaw(input, storage, true)
 	engine := NewEngine(&nsm)
 
 	// Handle a filtered event
@@ -95,7 +96,7 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 func TestNamespace(t *testing.T) {
 	storage := newNaiveStorage()
 	input, _ := ioutil.ReadFile("../../config/example")
-	nsm := NSMFromRaw(input, storage)
+	nsm := NSMFromRaw(input, storage, true)
 	engine := NewEngine(&nsm)
 
 	// Handle a basic

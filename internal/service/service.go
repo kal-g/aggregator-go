@@ -18,7 +18,7 @@ type Service struct {
 // MakeNewService creates and initializes the aggregator service
 func MakeNewService(redisURL string, zkURL string, nodeName string) Service {
 	storage := agg.NewRedisStorage(redisURL)
-	nsm := agg.NSMFromRaw(getConfigText(), storage)
+	nsm := agg.NSMFromRaw(getConfigText(), storage, zkURL == "")
 	engine := agg.NewEngine(&nsm)
 	zkm := zk.MakeNewZkManager(zkURL, nodeName, &nsm)
 	svc := Service{
