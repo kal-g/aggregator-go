@@ -182,7 +182,7 @@ func (zkm *ZkManager) DistributeNamespaces(children []string) {
 	for _, c := range children {
 		if zkm.nodeName != c {
 			// Put all non distributed namespaces into map for first non master node
-			data, _, err := zkm.c.Get("/nodeToNamespaceMap")
+			data, stat, err := zkm.c.Get("/nodeToNamespaceMap")
 			nsmap := NamespaceMapData{}
 			err = json.Unmarshal(data, &nsmap)
 			if err != nil {
@@ -191,6 +191,14 @@ func (zkm *ZkManager) DistributeNamespaces(children []string) {
 			}
 			for _, ns := range nonDistributedNs {
 				nsmap.NamespaceMap[ns] = true
+			}
+			data, err = json.Marshal(nsmap)
+			if err != nil {
+				panic(err)
+			}
+			_, err = zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
+			if err != nil {
+				panic(err)
 			}
 			// Create entries for all new namespaceToNode
 			for _, ns := range nonDistributedNs {
@@ -260,6 +268,7 @@ func (zkm *ZkManager) LeaderElection() {
 }
 
 func (zkm *ZkManager) watchNodes() {
+	logger.Info().Msgf("Detected change in agg nodes")
 	children, _, nodesChan, err := zkm.c.ChildrenW("/nodes")
 	if err != nil {
 		panic(err)
