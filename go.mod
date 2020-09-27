@@ -6,9 +6,7 @@ require (
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-redis/redis/v8 v8.0.0
 	github.com/go-zookeeper/zk v1.0.2
-	github.com/google/martian v2.1.0+incompatible
 	github.com/gorilla/mux v1.8.0
-	github.com/quibitv/gotils v1.0.441
 	github.com/rs/zerolog v1.19.0
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
