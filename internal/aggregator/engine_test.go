@@ -39,7 +39,6 @@ func TestEngine(t *testing.T) {
 	}
 	mcs := []*metricConfig{&mc}
 	parser := NSMFromConfigs(ecs, mcs, storage, true)
-
 	// Create engine
 	engine := NewEngine(&parser)
 
@@ -50,7 +49,7 @@ func TestEngine(t *testing.T) {
 	// Inspect the storage directly to check result
 	// Metric 1, for key 1234
 
-	sr := storage.Get(":1:1234")
+	sr := storage.Get("global:1:1234")
 	ct.AssertEqual(t, sr.ErrCode, 0)
 	ct.AssertEqual(t, sr.Value, 1)
 }
@@ -67,8 +66,8 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 
 	// Handle a filtered event
 	re1 := map[string]interface{}{"id": 1, "test1": 1234, "test2": 1, "test3": 1234, "test4": 1234}
-	res1 := engine.HandleRawEvent(re1, "")
-	sr1 := storage.Get(":1:1234")
+	res1 := engine.HandleRawEvent(re1, "global")
+	sr1 := storage.Get("global:1:1234")
 
 	ct.AssertEqual(t, res1, Success)
 	ct.AssertEqual(t, sr1.ErrCode, 1)
@@ -76,8 +75,8 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 
 	// Handle a valid event
 	re2 := map[string]interface{}{"id": 1, "test1": 1234, "test2": 10, "test3": 1234, "test4": 1234}
-	res2 := engine.HandleRawEvent(re2, "")
-	sr2 := storage.Get(":1:1234")
+	res2 := engine.HandleRawEvent(re2, "global")
+	sr2 := storage.Get("global:1:1234")
 
 	ct.AssertEqual(t, res2, Success)
 	ct.AssertEqual(t, sr2.ErrCode, 0)
@@ -85,8 +84,8 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 
 	// Handle another filtered event
 	re3 := map[string]interface{}{"id": 1, "test1": 1234, "test2": 1, "test3": 1234, "test4": 1234}
-	res3 := engine.HandleRawEvent(re3, "")
-	sr3 := storage.Get(":1:1234")
+	res3 := engine.HandleRawEvent(re3, "global")
+	sr3 := storage.Get("global:1:1234")
 
 	ct.AssertEqual(t, res3, Success)
 	ct.AssertEqual(t, sr3.ErrCode, 0)
@@ -102,8 +101,8 @@ func TestNamespace(t *testing.T) {
 	// Handle a basic
 	re1 := map[string]interface{}{"id": 1, "test1": 2, "test2": 2, "test3": 3, "test4": 4}
 
-	res1 := engine.HandleRawEvent(re1, "")
-	sr1 := storage.Get(":1:2")
+	res1 := engine.HandleRawEvent(re1, "global")
+	sr1 := storage.Get("global:1:2")
 
 	ct.AssertEqual(t, res1, Success)
 	ct.AssertEqual(t, sr1.ErrCode, 0)

@@ -59,9 +59,9 @@ func (e Engine) handleEvent(event event, namespace string) EngineHandleResult {
 	for _, metricConfig := range metricConfigs {
 		_, isNew := metricConfig.handleEvent(event)
 		if isNew {
-			e.Nsm.NsDataLck.Lock()
+			e.Nsm.NsDataLck.RLock()
 			e.Nsm.NsMetaMap[metricConfig.Namespace].KeySizeMap[metricConfig.ID]++
-			e.Nsm.NsDataLck.Unlock()
+			e.Nsm.NsDataLck.RUnlock()
 		}
 	}
 	e.Nsm.namespaceRUnlock(namespace)
