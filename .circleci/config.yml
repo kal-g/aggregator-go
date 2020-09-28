@@ -15,7 +15,7 @@ jobs:
       - run: go get -v -t -d ./...
       - run: make
       - run: make test
-  build_and_push_image:
+  build_push_deploy:
     executor: docker-publisher
     environment:
     steps:
