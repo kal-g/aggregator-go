@@ -17,7 +17,6 @@ jobs:
       - run: make test
   build_push_deploy:
     executor: docker-publisher
-    environment:
     steps:
       - add_ssh_keys:
         fingerprints:
