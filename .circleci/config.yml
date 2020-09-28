@@ -15,10 +15,12 @@ jobs:
       - run: go get -v -t -d ./...
       - run: make
       - run: make test
-  build_and_push_image:
+  build_push_deploy:
     executor: docker-publisher
-    environment:
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "f4:04:5b:2a:c5:96:f8:60:7c:dc:96:c2:f7:35:d7:ab"
       - checkout:
           path: aggregator-go
       - setup_remote_docker:
@@ -30,6 +32,11 @@ jobs:
             TAG=0.1.$CIRCLE_BUILD_NUM
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             docker buildx build --platform linux/amd64,linux/arm/v7,linux/arm64 -t $IMAGE_NAME:$TAG -t $IMAGE_NAME:latest --push -f aggregator-go/config/docker/main/Dockerfile .
+      - run:
+          name: Deploy to Host RPI 1
+          command: |
+            TAG=0.1.$CIRCLE_BUILD_NUM
+            ssh -o StrictHostKeyChecking=no ubuntu@$HOST_RPI_1 "kubectl set image deployment/agg agg=$IMAGE_NAME:$TAG"
   build_e2e_test:
     executor: docker-publisher
     steps:
@@ -67,16 +74,6 @@ jobs:
           name: Start test
           command: |
             docker run --network container:redis -e NODE_NAME=agg -e REDIS_URL=redis:6379 $IMAGE_NAME:e2e
-  deploy:
-    executor: docker-publisher
-    steps:
-      - add_ssh_keys:
-          fingerprints:
-            - "f4:04:5b:2a:c5:96:f8:60:7c:dc:96:c2:f7:35:d7:ab"
-      - run:
-          name: Deploy to Host RPI 1
-          command: |
-            ssh -o StrictHostKeyChecking=no ubuntu@$HOST_RPI_1 "echo test"
 workflows:
   version: 2.1
   build-master:
@@ -88,14 +85,7 @@ workflows:
       - e2e_test:
           requires:
             - build_e2e_test
-      - build_and_push_image:
-          filters:
-            branches:
-              only:
-                - master
-      - deploy:
-          requires:
-            - build_and_push_image
+      - build_push_deploy:
           filters:
             branches:
               only:
