@@ -19,8 +19,8 @@ jobs:
     executor: docker-publisher
     steps:
       - add_ssh_keys:
-        fingerprints:
-          - "f4:04:5b:2a:c5:96:f8:60:7c:dc:96:c2:f7:35:d7:ab"
+          fingerprints:
+            - "f4:04:5b:2a:c5:96:f8:60:7c:dc:96:c2:f7:35:d7:ab"
       - checkout:
           path: aggregator-go
       - setup_remote_docker:
