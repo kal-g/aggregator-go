@@ -31,9 +31,9 @@ func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if namespace exists
-	s.e.Nsm.MetaMtx.Lock()
+	s.e.Nsm.NsDataLck.RLock()
 	meta, exists := s.e.Nsm.NsMetaMap[namespace]
-	s.e.Nsm.MetaMtx.Unlock()
+	s.e.Nsm.NsDataLck.RUnlock()
 
 	res := NamespaceGetInfoResult{}
 	if !exists {

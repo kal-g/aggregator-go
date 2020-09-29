@@ -8,7 +8,7 @@
             ],
             "key_field": "test1",
             "type": "count",
-            "namespace": "",
+            "namespace": "global",
             "filter": [
               "all",
               ["gt","test1",1],

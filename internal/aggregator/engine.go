@@ -1,5 +1,13 @@
 package aggregator
 
+import (
+	"os"
+
+	"github.com/rs/zerolog"
+)
+
+var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "ENG").Logger()
+
 // Engine is the core calculcation engine for counting
 type Engine struct {
 	Nsm *NamespaceManager
@@ -40,11 +48,7 @@ func (e Engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 }
 
 func (e Engine) handleEvent(event event, namespace string) EngineHandleResult {
-	// TODO Figure out more elegant solution for global + namespace
-	e.Nsm.namespaceRLock("")
-	if namespace != "" {
-		e.Nsm.namespaceRLock(namespace)
-	}
+	e.Nsm.namespaceRLock(namespace)
 	// Get the metric configs for this event
 	metricConfigs := e.getMetricConfigs(event, namespace)
 	if len(metricConfigs) == 0 {
@@ -55,32 +59,21 @@ func (e Engine) handleEvent(event event, namespace string) EngineHandleResult {
 	for _, metricConfig := range metricConfigs {
 		_, isNew := metricConfig.handleEvent(event)
 		if isNew {
-			e.Nsm.MetaMtx.Lock()
+			e.Nsm.NsDataLck.RLock()
 			e.Nsm.NsMetaMap[metricConfig.Namespace].KeySizeMap[metricConfig.ID]++
-			e.Nsm.MetaMtx.Unlock()
+			e.Nsm.NsDataLck.RUnlock()
 		}
 	}
-	e.Nsm.namespaceRUnlock("")
-	if namespace != "" {
-		e.Nsm.namespaceRUnlock(namespace)
-	}
+	e.Nsm.namespaceRUnlock(namespace)
 	return Success
 }
 
 func (e Engine) getMetricConfigs(event event, namespace string) []*metricConfig {
 	configs := []*metricConfig{}
-
-	// First get all configs in global namespace
-	globalNamespace, globalNamespaceExists := e.Nsm.EventToMetricMap[""]
-	if globalNamespaceExists {
-		globalConfigs, globalConfigsExist := globalNamespace[event.ID]
-		if globalConfigsExist {
-			configs = append(configs, globalConfigs...)
-		}
-	}
-
-	// Then get all configs in the specified namespace
-	if namespace != "" {
+	e.Nsm.NsDataLck.RLock()
+	// Get all configs in the specified namespace
+	// Check if namespace active on this node
+	if _, exists := e.Nsm.NsMetaMap[namespace]; exists {
 		specificNamespace, namespaceExists := e.Nsm.EventToMetricMap[namespace]
 		if namespaceExists {
 			namespaceConfigs, namespaceConfigsExist := specificNamespace[event.ID]
@@ -89,6 +82,7 @@ func (e Engine) getMetricConfigs(event event, namespace string) []*metricConfig 
 			}
 		}
 	}
+	e.Nsm.NsDataLck.RUnlock()
 	return configs
 }
 

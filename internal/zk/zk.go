@@ -11,21 +11,34 @@ import (
 
 	"github.com/go-zookeeper/zk"
 	"github.com/rs/zerolog"
+
+	agg "github.com/kal-g/aggregator-go/internal/aggregator"
 )
 
 // ZkManager handles all zookeeper interaction
 type ZkManager struct {
-	c             *zk.Conn
-	localOnlyMode bool
-	nodeName      string
-	currVote      string
-	isLeader      bool
-	logger        zerolog.Logger
-	watchNodeChan <-chan zk.Event
+	c               *zk.Conn
+	localOnlyMode   bool
+	nodeName        string
+	currVote        string
+	isLeader        bool
+	logger          zerolog.Logger
+	watchLeaderChan <-chan zk.Event
+	nsmChan         <-chan zk.Event
+	watchNodesChan  <-chan zk.Event
+	nsm             *agg.NamespaceManager
 }
 
 type AggNodeStatus struct {
-	isReady bool
+	IsReady bool
+}
+
+type NamespaceMapData struct {
+	NamespaceMap map[string]bool
+}
+
+type NamespaceToNodeData struct {
+	Node string
 }
 
 var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "ZK").Logger()
@@ -40,18 +53,21 @@ func (l ZkLogger) Printf(fmt string, args ...interface{}) {
 
 // MakeNewZkManager inits and connects to zk
 // If no url given, sets local only mode
-func MakeNewZkManager(zkURL string, nodeName string) *ZkManager {
+func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager) *ZkManager {
 	logger := zerolog.New(os.Stderr).With().Str("source", "ZK").Logger()
 
 	if zkURL == "" {
 		logger.Info().Msgf("Local only mode")
 		return &ZkManager{
-			c:             nil,
-			localOnlyMode: true,
-			nodeName:      nodeName,
-			isLeader:      false,
-			logger:        logger,
-			watchNodeChan: nil,
+			c:               nil,
+			localOnlyMode:   true,
+			nodeName:        nodeName,
+			isLeader:        false,
+			logger:          logger,
+			watchLeaderChan: nil,
+			nsmChan:         nil,
+			watchNodesChan:  nil,
+			nsm:             nsm,
 		}
 	}
 	l := ZkLogger{}
@@ -63,12 +79,15 @@ func MakeNewZkManager(zkURL string, nodeName string) *ZkManager {
 	}
 
 	zkm := &ZkManager{
-		c:             c,
-		localOnlyMode: false,
-		nodeName:      nodeName,
-		isLeader:      false,
-		logger:        logger,
-		watchNodeChan: nil,
+		c:               c,
+		localOnlyMode:   false,
+		nodeName:        nodeName,
+		isLeader:        false,
+		logger:          logger,
+		watchLeaderChan: nil,
+		nsmChan:         nil,
+		watchNodesChan:  nil,
+		nsm:             nsm,
 	}
 	zkm.Setup()
 	go zkm.LeaderElection()
@@ -96,7 +115,7 @@ func (zkm ZkManager) Setup() {
 
 	// Register Node
 	status := AggNodeStatus{
-		isReady: true,
+		IsReady: true,
 	}
 	statusData, err := json.Marshal(status)
 	if err != nil {
@@ -110,6 +129,91 @@ func (zkm ZkManager) Setup() {
 			os.Exit(1)
 		} else {
 			panic(err)
+		}
+	}
+
+	// Node to namespace map
+	nodeMap := NamespaceMapData{
+		NamespaceMap: map[string]bool{},
+	}
+	nodeMapData, _ := json.Marshal(nodeMap)
+	_, err = zkm.c.Create("/nodeToNamespaceMap", nodeMapData, 0, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		if !errors.Is(err, zk.ErrNodeExists) {
+			panic(err)
+		}
+	}
+
+	_, err = zkm.c.Create("/namespaceToNode", []byte{}, 0, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		if !errors.Is(err, zk.ErrNodeExists) {
+			panic(err)
+		}
+	}
+
+}
+
+func (zkm *ZkManager) DistributeNamespaces(children []string) {
+	if len(children) == 1 {
+		logger.Info().Msgf("Only master, no namespaces distributed")
+		return
+	}
+	// TODO Get distributed namespaces
+	distributedNs := map[string]bool{}
+	nss, _, err := zkm.c.Children("/namespaceToNode")
+	if err != nil {
+		panic(err)
+	}
+
+	for _, ns := range nss {
+		distributedNs[ns] = true
+	}
+
+	// TODO check against metric map to find non distributed namespaces
+	nonDistributedNs := []string{}
+	for ns := range zkm.nsm.MetricMap {
+		if _, exists := distributedNs[ns]; !exists {
+			nonDistributedNs = append(nonDistributedNs, ns)
+		}
+	}
+	logger.Info().Msgf("Namespaces about to be distributed: %+v", nonDistributedNs)
+
+	// Find first non master node
+	for _, c := range children {
+		if zkm.nodeName != c {
+			// Put all non distributed namespaces into map for first non master node
+			data, stat, err := zkm.c.Get("/nodeToNamespaceMap")
+			nsmap := NamespaceMapData{}
+			err = json.Unmarshal(data, &nsmap)
+			if err != nil {
+				logger.Error().Msgf("Error getting nodeToNamespaceMap")
+				panic(err)
+			}
+			for _, ns := range nonDistributedNs {
+				nsmap.NamespaceMap[ns] = true
+			}
+			data, err = json.Marshal(nsmap)
+			if err != nil {
+				panic(err)
+			}
+			_, err = zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
+			if err != nil {
+				panic(err)
+			}
+			// Create entries for all new namespaceToNode
+			for _, ns := range nonDistributedNs {
+				nsToNode := NamespaceToNodeData{Node: c}
+				nsToNodeData, err := json.Marshal(nsToNode)
+				if err != nil {
+					panic(err)
+				}
+				_, err = zkm.c.Create("/namespaceToNode/"+ns, nsToNodeData, 0, zk.WorldACL(zk.PermAll))
+				if err != nil {
+					logger.Error().Msgf("Error creating namespaceToNode entry %+v", "/namespaceToNode/"+ns)
+					panic(err)
+				}
+			}
+			break
 		}
 	}
 
@@ -128,6 +232,7 @@ func (zkm *ZkManager) LeaderElection() {
 	// Check election results
 	votes, _, err := zkm.c.Children("/election")
 	if err != nil {
+		logger.Error().Msgf("Error getting votes")
 		panic(err)
 	}
 	sort.Strings(votes)
@@ -135,12 +240,70 @@ func (zkm *ZkManager) LeaderElection() {
 		// If smallest vote, become leader
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
+		zkm.watchLeaderChan = nil
+		// Watch for new nodes
+		zkm.watchNodes()
 	} else {
 		logger.Info().Msgf("Not leader, setting up leader watch")
-		// TODO
-		// If not leader, setup watcher on next smallest node
+		// Setup watcher on next smallest node
 		watchChan := zkm.getWatchNodeChannel(votes)
-		zkm.watchNextNode(watchChan)
+		go zkm.watchNextNode(watchChan)
+		// Read and setup watcher on nodeToNamespaceMap
+		logger.Info().Msgf("Reading initial namespace map")
+		data, _, nsmChan, err := zkm.c.GetW("/nodeToNamespaceMap/" + zkm.nodeName)
+		if !errors.As(err, &zk.ErrNoNode) {
+			logger.Error().Msgf("Error getting initial namespace map")
+			panic(err)
+		}
+
+		nsmd := NamespaceMapData{}
+		json.Unmarshal(data, &nsmd)
+		for ns, _ := range nsmd.NamespaceMap {
+			zkm.nsm.ActivateNamespace(ns)
+		}
+		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.NsMetaMap)
+		zkm.nsmChan = nsmChan
+		go zkm.watchNamespace()
+	}
+}
+
+func (zkm *ZkManager) watchNodes() {
+	logger.Info().Msgf("Detected change in agg nodes")
+	children, _, nodesChan, err := zkm.c.ChildrenW("/nodes")
+	if err != nil {
+		panic(err)
+	}
+	zkm.watchNodesChan = nodesChan
+	for {
+		zkm.DistributeNamespaces(children)
+		e := <-zkm.watchNodesChan
+		if e.Type != zk.EventNodeChildrenChanged {
+			panic("ZK - Unexpected event")
+		}
+		children, _, nodesChan, err = zkm.c.ChildrenW("/nodes")
+		if err != nil {
+			panic(err)
+		}
+		zkm.watchNodesChan = nodesChan
+	}
+}
+
+func (zkm *ZkManager) watchNamespace() {
+	for {
+		e := <-zkm.nsmChan
+		if e.Type != zk.EventNodeDataChanged {
+			panic("ZK - Unexpected event")
+		}
+		data, _, err := zkm.c.Get("/nodeToNamespaceMap/" + zkm.nodeName)
+		if !errors.As(err, &zk.ErrNoNode) {
+			panic(err)
+		}
+		nsmd := NamespaceMapData{}
+		json.Unmarshal(data, &nsmd)
+		for ns, _ := range nsmd.NamespaceMap {
+			zkm.nsm.ActivateNamespace(ns)
+		}
+		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.NsMetaMap)
 	}
 }
 
@@ -167,11 +330,11 @@ func (zkm *ZkManager) getWatchNodeChannel(votes []string) <-chan zk.Event {
 }
 
 func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
-	if zkm.watchNodeChan != nil {
-		panic("Zk - Already watching")
+	if zkm.watchLeaderChan != nil {
+		panic("Zk - Already watching next node")
 	}
-	zkm.watchNodeChan = ch
-	e := <-zkm.watchNodeChan
+	zkm.watchLeaderChan = ch
+	e := <-zkm.watchLeaderChan
 	if e.Type != zk.EventNodeDeleted {
 		panic("Zk - Invalid operation on vote")
 	}
@@ -187,12 +350,14 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 		// If smallest vote, become leader
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
-		zkm.watchNodeChan = nil
+		zkm.watchLeaderChan = nil
+		// Watch for new nodes
+		zkm.watchNodes()
 	} else {
 		logger.Info().Msgf("Not leader, setting up leader watch")
 		// If not leader, setup watcher on next smallest node
 		watchChan := zkm.getWatchNodeChannel(votes)
-		zkm.watchNodeChan = nil
+		zkm.watchLeaderChan = nil
 		zkm.watchNextNode(watchChan)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -47,6 +48,11 @@ func main() {
 			fmt.Printf("%+v, %+v\n", resp, err)
 			if err == nil {
 				if resp.StatusCode == 200 {
+					bytes, err := ioutil.ReadAll(resp.Body)
+					if err == nil {
+						fmt.Printf("%+v\n", string(bytes))
+					}
+
 					successCount++
 				}
 				resp.Body.Close()
