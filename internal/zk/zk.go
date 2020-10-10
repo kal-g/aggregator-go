@@ -291,7 +291,7 @@ func (zkm *ZkManager) watchNodes() {
 		zkm.DistributeNamespaces(children)
 		e := <-zkm.watchNodesChan
 		if e.Type != zk.EventNodeChildrenChanged {
-			panic("ZK - Unexpected event")
+			panic(fmt.Sprintf("ZK - Unexpected event %d", e.Type))
 		}
 		children, _, nodesChan, err = zkm.c.ChildrenW("/nodes")
 		if err != nil {
@@ -305,7 +305,7 @@ func (zkm *ZkManager) watchNamespace() {
 	for {
 		e := <-zkm.nsmChan
 		if e.Type != zk.EventNodeDataChanged {
-			panic("ZK - Unexpected event")
+			panic(fmt.Sprintf("ZK - Unexpected event %d", e.Type))
 		}
 		data, _, err := zkm.c.Get("/nodeToNamespaceMap/" + zkm.nodeName)
 		if !errors.As(err, &zk.ErrNoNode) {
