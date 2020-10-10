@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-
-	agg "github.com/kal-g/aggregator-go/internal/aggregator"
 )
 
 type ConsumeResult struct {
-	ErrorCode agg.EngineHandleResult `json:"error_code"`
+	Err string `json:"error"`
 }
 
 // Consume is the endpoint that ingests event into aggregator
@@ -33,10 +31,13 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		namespace = nString
 	}
 
-	engineResult := s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
-
+	err = s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
 	consumeRes := ConsumeResult{
-		ErrorCode: engineResult,
+		Err: errMsg,
 	}
 	data, _ := json.Marshal(consumeRes)
 
@@ -44,7 +45,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (s *Service) doConsume(payload map[string]interface{}, namespace string) agg.EngineHandleResult {
+func (s *Service) doConsume(payload map[string]interface{}, namespace string) error {
 	// Since we're unmarshalling into an interface, unmarshal converts to floats
 	// Convert the floats to ints
 	sanitizedPayload := map[string]interface{}{}

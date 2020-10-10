@@ -19,7 +19,7 @@ client: all
 	@./scripts/client.sh
 
 e2e_test: all
-	@./scripts/e2e_test.sh
+	@NODE_NAME=agg ./scripts/e2e_test.sh
 
 benchmark: all
 	@./scripts/benchmark.sh 1

@@ -2,8 +2,8 @@ package aggregator
 
 // StorageResult is the wrapper for getting values from storagge
 type StorageResult struct {
-	Value   int
-	ErrCode int
+	Value int
+	Err   error
 }
 
 // AbstractStorage is the storage interface

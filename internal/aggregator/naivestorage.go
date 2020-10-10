@@ -21,9 +21,9 @@ func newNaiveStorage() *naiveStorage {
 func (s naiveStorage) Get(key string) StorageResult {
 	val, keyExists := s.data[key]
 	if !keyExists {
-		return StorageResult{Value: 0, ErrCode: 1}
+		return StorageResult{Value: 0, Err: &StorageKeyNotFoundError{}}
 	}
-	return StorageResult{Value: val, ErrCode: 0}
+	return StorageResult{Value: val, Err: nil}
 }
 
 // IncrBy value

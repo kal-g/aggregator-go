@@ -9,8 +9,8 @@ import (
 )
 
 type NamespaceGetInfoResult struct {
-	ErrorCode int                   `json:"error_code"`
-	Data      agg.NamespaceMetadata `json:"data"`
+	Err  error                 `json:"error"`
+	Data agg.NamespaceMetadata `json:"data"`
 }
 
 func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 
 	res := NamespaceGetInfoResult{}
 	if !exists {
-		res.ErrorCode = 1
+		res.Err = &agg.NamespaceNotFoundError{}
 	} else {
 		res.Data = meta
 	}

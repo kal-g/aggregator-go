@@ -33,17 +33,17 @@ func (s *Service) Count(w http.ResponseWriter, r *http.Request) {
 	metricKey, metricKeyExists := bodyJSON["metricKey"]
 	metricID, metricIDExists := bodyJSON["metricID"]
 
-	errCode := 0
+	err = nil
 	if !metricKeyExists {
-		errCode = 1
+		err = &agg.MetricKeyNotFoundError{}
 	}
 	if !metricIDExists {
-		errCode = 2
+		err = &agg.MetricIDNotFoundError{}
 	}
 
-	if errCode != 0 {
+	if err != nil {
 		res := agg.MetricCountResult{
-			ErrCode: errCode,
+			Err: err,
 		}
 		data, _ := json.Marshal(res)
 		w.Header().Set("Content-Type", "application/json")
@@ -55,15 +55,15 @@ func (s *Service) Count(w http.ResponseWriter, r *http.Request) {
 	metricIDAsFloat, idIsFloat := metricID.(float64)
 
 	if !keyIsFloat {
-		errCode = 3
+		err = &agg.MetricKeyInvalidType{}
 	}
 	if !idIsFloat {
-		errCode = 4
+		err = &agg.MetricIDInvalidType{}
 	}
 
-	if errCode != 0 {
+	if err != nil {
 		res := agg.MetricCountResult{
-			ErrCode: errCode,
+			Err: err,
 		}
 		data, _ := json.Marshal(res)
 		w.Header().Set("Content-Type", "application/json")
