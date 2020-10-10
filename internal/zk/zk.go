@@ -192,6 +192,7 @@ func (zkm *ZkManager) DistributeNamespaces(children []string) {
 			for _, ns := range nonDistributedNs {
 				nsmap.NamespaceMap[ns] = true
 			}
+			// TODO Combine with distributed namespaces
 			data, err = json.Marshal(nsmap)
 			if err != nil {
 				panic(err)
@@ -300,7 +301,8 @@ func (zkm *ZkManager) watchNamespace() {
 		}
 		nsmd := NamespaceMapData{}
 		json.Unmarshal(data, &nsmd)
-		for ns, _ := range nsmd.NamespaceMap {
+		// TODO Find namespaces we lost and deactivate them
+		for ns := range nsmd.NamespaceMap {
 			zkm.nsm.ActivateNamespace(ns)
 		}
 		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.NsMetaMap)

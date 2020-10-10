@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"errors"
 	"strconv"
 )
 
@@ -19,8 +20,8 @@ type metricConfig struct {
 // MetricCountResult is the result of a count operation
 // TODO move
 type MetricCountResult struct {
-	ErrCode int
-	Count   int
+	Err   error
+	Count int
 }
 
 func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
@@ -36,7 +37,7 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
 
-	if r.ErrCode == 1 {
+	if errors.Is(r.Err, &StorageKeyNotFoundError{}) {
 		isNew = true
 	}
 
@@ -56,15 +57,15 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 func (mc metricConfig) getCount(metricKey int) MetricCountResult {
 	storageKey := getMetricStorageKey(metricKey, mc.ID, mc.Namespace)
 	r := mc.Storage.Get(storageKey)
-	if r.ErrCode != 0 {
+	if r.Err != nil {
 		return MetricCountResult{
-			ErrCode: r.ErrCode,
-			Count:   0,
+			Err:   r.Err,
+			Count: 0,
 		}
 	}
 	return MetricCountResult{
-		ErrCode: 0,
-		Count:   r.Value,
+		Err:   nil,
+		Count: r.Value,
 	}
 }
 

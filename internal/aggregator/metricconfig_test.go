@@ -66,7 +66,7 @@ func TestMetricStorageInit(t *testing.T) {
 	// Metric 1, for key 1234
 	sr := storage.Get(":1:1234")
 
-	ct.AssertEqual(t, sr.ErrCode, 0)
+	ct.AssertEqual(t, sr.Err, nil)
 	ct.AssertEqual(t, sr.Value, 1)
 }
 
@@ -93,12 +93,12 @@ func TestMetricStateMaintained(t *testing.T) {
 
 	config.handleEvent(event)
 	sr1 := storage.Get(":1:1234")
-	ct.AssertEqual(t, sr1.ErrCode, 0)
+	ct.AssertEqual(t, sr1.Err, nil)
 	ct.AssertEqual(t, sr1.Value, 1)
 
 	config.handleEvent(event)
 	sr2 := storage.Get(":1:1234")
-	ct.AssertEqual(t, sr2.ErrCode, 0)
+	ct.AssertEqual(t, sr2.Err, nil)
 	ct.AssertEqual(t, sr2.Value, 2)
 
 }
@@ -130,11 +130,11 @@ func TestIncDecWithCountKey(t *testing.T) {
 
 	config.handleEvent(e1)
 	sr1 := storage.Get(":1:1234")
-	ct.AssertEqual(t, sr1.ErrCode, 0)
+	ct.AssertEqual(t, sr1.Err, nil)
 	ct.AssertEqual(t, sr1.Value, 5)
 
 	config.handleEvent(e2)
 	sr2 := storage.Get(":1:1234")
-	ct.AssertEqual(t, sr2.ErrCode, 0)
+	ct.AssertEqual(t, sr2.Err, nil)
 	ct.AssertEqual(t, sr2.Value, 3)
 }

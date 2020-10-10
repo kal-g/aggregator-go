@@ -38,17 +38,17 @@ func (s RedisStorage) Get(key string) StorageResult {
 	ctx := context.Background()
 	val, err := s.db.Get(ctx, key).Result()
 	if err != nil {
-		return StorageResult{Value: 0, ErrCode: 1}
+		return StorageResult{Value: 0, Err: &StorageKeyNotFoundError{}}
 	}
 
 	if len(val) == 0 {
-		return StorageResult{Value: 0, ErrCode: 1}
+		return StorageResult{Value: 0, Err: &StorageKeyNotFoundError{}}
 	}
 	value, err := strconv.Atoi(val)
 	if err != nil {
-		return StorageResult{Value: 0, ErrCode: 2}
+		return StorageResult{Value: 0, Err: &StorageInvalidDataError{}}
 	}
-	return StorageResult{Value: value, ErrCode: 0}
+	return StorageResult{Value: value, Err: nil}
 }
 
 // IncrBy value

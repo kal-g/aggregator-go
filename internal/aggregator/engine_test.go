@@ -44,13 +44,13 @@ func TestEngine(t *testing.T) {
 
 	// Handle a basic event
 	result := engine.HandleRawEvent(re, "global")
-	assert.Equal(t, Success, result)
+	assert.Equal(t, nil, result)
 
 	// Inspect the storage directly to check result
 	// Metric 1, for key 1234
 
 	sr := storage.Get("global:1:1234")
-	ct.AssertEqual(t, sr.ErrCode, 0)
+	ct.AssertEqual(t, sr.Err, nil)
 	ct.AssertEqual(t, sr.Value, 1)
 }
 
@@ -69,8 +69,8 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 	res1 := engine.HandleRawEvent(re1, "global")
 	sr1 := storage.Get("global:1:1234")
 
-	ct.AssertEqual(t, res1, Success)
-	ct.AssertEqual(t, sr1.ErrCode, 1)
+	ct.AssertEqual(t, res1, nil)
+	ct.AssertEqual(t, sr1.Err, &StorageKeyNotFoundError{})
 	ct.AssertEqual(t, sr1.Value, 0)
 
 	// Handle a valid event
@@ -78,8 +78,8 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 	res2 := engine.HandleRawEvent(re2, "global")
 	sr2 := storage.Get("global:1:1234")
 
-	ct.AssertEqual(t, res2, Success)
-	ct.AssertEqual(t, sr2.ErrCode, 0)
+	ct.AssertEqual(t, res2, nil)
+	ct.AssertEqual(t, sr2.Err, nil)
 	ct.AssertEqual(t, sr2.Value, 1234)
 
 	// Handle another filtered event
@@ -87,8 +87,8 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 	res3 := engine.HandleRawEvent(re3, "global")
 	sr3 := storage.Get("global:1:1234")
 
-	ct.AssertEqual(t, res3, Success)
-	ct.AssertEqual(t, sr3.ErrCode, 0)
+	ct.AssertEqual(t, res3, nil)
+	ct.AssertEqual(t, sr3.Err, nil)
 	ct.AssertEqual(t, sr3.Value, 1234)
 }
 
@@ -104,15 +104,15 @@ func TestNamespace(t *testing.T) {
 	res1 := engine.HandleRawEvent(re1, "global")
 	sr1 := storage.Get("global:1:2")
 
-	ct.AssertEqual(t, res1, Success)
-	ct.AssertEqual(t, sr1.ErrCode, 0)
+	ct.AssertEqual(t, res1, nil)
+	ct.AssertEqual(t, sr1.Err, nil)
 	ct.AssertEqual(t, sr1.Value, 2)
 
 	re2 := map[string]interface{}{"id": 1, "test1": 2, "test2": 2, "test3": 3, "test4": 4}
 	res2 := engine.HandleRawEvent(re2, "test")
 	sr2 := storage.Get("test:1:2")
 
-	ct.AssertEqual(t, res2, Success)
-	ct.AssertEqual(t, sr2.ErrCode, 0)
+	ct.AssertEqual(t, res2, nil)
+	ct.AssertEqual(t, sr2.Err, nil)
 	ct.AssertEqual(t, sr2.Value, 3)
 }
