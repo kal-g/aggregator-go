@@ -29,7 +29,7 @@ fi
 
 namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
 echo "Namespace info was" $namespaceInfo
-if [ $namespaceInfo != '{"Err":null,"data":{"metric_keys":{"1":1}}}' ]
+if [ $namespaceInfo != '{"error":null,"data":{"metric_keys":{"1":1}}}' ]
 then
   end
 fi
