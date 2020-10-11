@@ -153,14 +153,14 @@ func (zkm ZkManager) Setup() {
 
 }
 
-func (zkm *ZkManager) DistributeNamespaces(children []string) {
+func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
 	if len(children) == 1 {
 		logger.Info().Msgf("Only master, no namespaces distributed")
 		return
 	}
 	// Get distributed namespaces
 	distributedNs := map[string]string{}
-	nss, _, err := zkm.c.Children("/namespaceToNode")
+	nss, nstnStat, err := zkm.c.Children("/namespaceToNode")
 	if err != nil {
 		panic(err)
 	}
@@ -173,6 +173,27 @@ func (zkm *ZkManager) DistributeNamespaces(children []string) {
 		distributedNs[ns] = nsToNode.Node
 	}
 
+	// Check for nodes that were removed
+	data, stat, err := zkm.c.Get("/nodeToNamespaceMap")
+	nsmap := NodeToNamespaceMapData{}
+	err = json.Unmarshal(data, &nsmap)
+	if err != nil {
+		logger.Error().Msgf("Error getting nodeToNamespaceMap")
+		panic(err)
+	}
+
+	// For each node in map that no longer exists, redistribute all namespaces, and delete entry
+	for node, namespaces := range nsmap.Map {
+		if _, exists := children[node]; !exists {
+			logger.Info().Msgf("Node %s was removed, redistributing namespaces: %v", node, namespaces)
+
+			for ns := range namespaces {
+				delete(distributedNs, ns)
+				zkm.c.Delete("/namespaceToNode/"+ns, nstnStat.Version)
+			}
+		}
+	}
+
 	// check against metric map to find non distributed namespaces
 	nonDistributedNs := []string{}
 	for ns := range zkm.nsm.MetricMap {
@@ -183,21 +204,14 @@ func (zkm *ZkManager) DistributeNamespaces(children []string) {
 	logger.Info().Msgf("Namespaces about to be distributed: %+v", nonDistributedNs)
 
 	// Find first non master node
-	for _, c := range children {
+	for c := range children {
 		if zkm.nodeName != c {
 			// Put all non distributed namespaces into map for first non master node
-			data, stat, err := zkm.c.Get("/nodeToNamespaceMap")
-			nsmap := NodeToNamespaceMapData{}
-			err = json.Unmarshal(data, &nsmap)
-			if err != nil {
-				logger.Error().Msgf("Error getting nodeToNamespaceMap")
-				panic(err)
-			}
 			nsmap.Map[c] = map[string]bool{}
 			for _, ns := range nonDistributedNs {
 				nsmap.Map[c][ns] = true
 			}
-			// TODO Combine with distributed namespaces
+			// Combine with distributed namespaces
 			for ns, node := range distributedNs {
 				if _, exists := nsmap.Map[node]; !exists {
 					nsmap.Map[node] = map[string]bool{}
@@ -287,9 +301,14 @@ func (zkm *ZkManager) watchNodes() {
 		panic(err)
 	}
 	zkm.watchNodesChan = nodesChan
+	childrenMap := map[string]bool{}
+	for _, c := range children {
+		childrenMap[c] = true
+	}
 	for {
-		zkm.DistributeNamespaces(children)
+		zkm.DistributeNamespaces(childrenMap)
 		e := <-zkm.watchNodesChan
+		logger.Info().Msgf("Detected change in agg nodes")
 		if e.Type != zk.EventNodeChildrenChanged {
 			panic(fmt.Sprintf("ZK - Unexpected event in watchNodes -  %s", e.Type.String()))
 		}
