@@ -2,7 +2,10 @@ package aggregator
 
 import (
 	"encoding/json"
+	"os"
 	"sync"
+
+	"github.com/rs/zerolog"
 )
 
 // NamespaceMetadata encapsulates user relevant metadata about the namespace
@@ -21,6 +24,8 @@ type NamespaceManager struct {
 	EventToMetricMap map[string]map[int][]*metricConfig
 	NsMetaMap        map[string]NamespaceMetadata
 }
+
+var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "NSM").Logger()
 
 // NSMFromRaw creates a namespace manager from a byte stream
 func NSMFromRaw(input []byte, storage AbstractStorage, singleNodeMode bool) NamespaceManager {
@@ -51,7 +56,7 @@ func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractSto
 
 func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 	nsm.NsDataLck.Lock()
-
+	nsLogger.Info().Msgf("Activating namespace %s", ns)
 	if _, exists := nsm.NsMetaMap[ns]; exists {
 		nsm.NsDataLck.Unlock()
 		return

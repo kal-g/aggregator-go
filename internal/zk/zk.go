@@ -22,7 +22,6 @@ type ZkManager struct {
 	nodeName       string
 	currVote       string
 	isLeader       bool
-	logger         zerolog.Logger
 	watchNodesChan <-chan zk.Event
 	nsm            *agg.NamespaceManager
 }
@@ -61,7 +60,6 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager) 
 			localOnlyMode:  true,
 			nodeName:       nodeName,
 			isLeader:       false,
-			logger:         logger,
 			watchNodesChan: nil,
 			nsm:            nsm,
 		}
@@ -79,7 +77,6 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager) 
 		localOnlyMode:  false,
 		nodeName:       nodeName,
 		isLeader:       false,
-		logger:         logger,
 		watchNodesChan: nil,
 		nsm:            nsm,
 	}
