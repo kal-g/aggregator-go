@@ -301,11 +301,12 @@ func (zkm *ZkManager) watchNodes() {
 		panic(err)
 	}
 	zkm.watchNodesChan = nodesChan
-	childrenMap := map[string]bool{}
-	for _, c := range children {
-		childrenMap[c] = true
-	}
+
 	for {
+		childrenMap := map[string]bool{}
+		for _, c := range children {
+			childrenMap[c] = true
+		}
 		zkm.DistributeNamespaces(childrenMap)
 		e := <-zkm.watchNodesChan
 		logger.Info().Msgf("Detected change in agg nodes")
