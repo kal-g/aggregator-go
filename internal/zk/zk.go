@@ -17,16 +17,14 @@ import (
 
 // ZkManager handles all zookeeper interaction
 type ZkManager struct {
-	c               *zk.Conn
-	localOnlyMode   bool
-	nodeName        string
-	currVote        string
-	isLeader        bool
-	logger          zerolog.Logger
-	watchLeaderChan <-chan zk.Event
-	nsmChan         <-chan zk.Event
-	watchNodesChan  <-chan zk.Event
-	nsm             *agg.NamespaceManager
+	c              *zk.Conn
+	localOnlyMode  bool
+	nodeName       string
+	currVote       string
+	isLeader       bool
+	logger         zerolog.Logger
+	watchNodesChan <-chan zk.Event
+	nsm            *agg.NamespaceManager
 }
 
 type AggNodeStatus struct {
@@ -59,15 +57,13 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager) 
 	if zkURL == "" {
 		logger.Info().Msgf("Local only mode")
 		return &ZkManager{
-			c:               nil,
-			localOnlyMode:   true,
-			nodeName:        nodeName,
-			isLeader:        false,
-			logger:          logger,
-			watchLeaderChan: nil,
-			nsmChan:         nil,
-			watchNodesChan:  nil,
-			nsm:             nsm,
+			c:              nil,
+			localOnlyMode:  true,
+			nodeName:       nodeName,
+			isLeader:       false,
+			logger:         logger,
+			watchNodesChan: nil,
+			nsm:            nsm,
 		}
 	}
 	l := ZkLogger{}
@@ -79,18 +75,16 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager) 
 	}
 
 	zkm := &ZkManager{
-		c:               c,
-		localOnlyMode:   false,
-		nodeName:        nodeName,
-		isLeader:        false,
-		logger:          logger,
-		watchLeaderChan: nil,
-		nsmChan:         nil,
-		watchNodesChan:  nil,
-		nsm:             nsm,
+		c:              c,
+		localOnlyMode:  false,
+		nodeName:       nodeName,
+		isLeader:       false,
+		logger:         logger,
+		watchNodesChan: nil,
+		nsm:            nsm,
 	}
 	zkm.Setup()
-	go zkm.LeaderElection()
+	zkm.LeaderElection()
 	return zkm
 }
 
@@ -267,30 +261,18 @@ func (zkm *ZkManager) LeaderElection() {
 		// If smallest vote, become leader
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
-		zkm.watchLeaderChan = nil
+		// Setup watcher on namespace
+		go zkm.watchNamespace()
 		// Watch for new nodes
-		zkm.watchNodes()
+		go zkm.watchNodes()
 	} else {
 		logger.Info().Msgf("Not leader, setting up leader watch")
+		// Setup watcher on namespace
+		go zkm.watchNamespace()
 		// Setup watcher on next smallest node
 		watchChan := zkm.getWatchNodeChannel(votes)
 		go zkm.watchNextNode(watchChan)
-		// Read and setup watcher on nodeToNamespaceMap
-		logger.Info().Msgf("Reading initial namespace map")
-		data, _, nsmChan, err := zkm.c.GetW("/nodeToNamespaceMap")
-		if err != nil && !errors.As(err, &zk.ErrNoNode) {
-			logger.Error().Msgf("Error getting initial namespace map")
-			panic(err)
-		}
 
-		nsmd := NodeToNamespaceMapData{}
-		json.Unmarshal(data, &nsmd)
-		for ns, _ := range nsmd.Map[zkm.nodeName] {
-			zkm.nsm.ActivateNamespace(ns)
-		}
-		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.NsMetaMap)
-		zkm.nsmChan = nsmChan
-		go zkm.watchNamespace()
 	}
 }
 
@@ -309,6 +291,10 @@ func (zkm *ZkManager) watchNodes() {
 		}
 		zkm.DistributeNamespaces(childrenMap)
 		e := <-zkm.watchNodesChan
+		if !zkm.isLeader {
+			logger.Info().Msgf("Detected change in agg nodes, but no longer leader")
+			return
+		}
 		logger.Info().Msgf("Detected change in agg nodes")
 		if e.Type != zk.EventNodeChildrenChanged {
 			panic(fmt.Sprintf("ZK - Unexpected event in watchNodes -  %s (%d)", e.Type.String(), e.Type))
@@ -323,11 +309,7 @@ func (zkm *ZkManager) watchNodes() {
 
 func (zkm *ZkManager) watchNamespace() {
 	for {
-		e := <-zkm.nsmChan
-		if e.Type != zk.EventNodeDataChanged {
-			panic(fmt.Sprintf("ZK - Unexpected event in watchNamespace - %s (%d)", e.Type.String(), e.Type))
-		}
-		data, _, err := zkm.c.Get("/nodeToNamespaceMap/" + zkm.nodeName)
+		data, _, nsmChan, err := zkm.c.GetW("/nodeToNamespaceMap/" + zkm.nodeName)
 		if !errors.As(err, &zk.ErrNoNode) {
 			panic(err)
 		}
@@ -338,6 +320,10 @@ func (zkm *ZkManager) watchNamespace() {
 			zkm.nsm.ActivateNamespace(ns)
 		}
 		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.NsMetaMap)
+		e := <-nsmChan
+		if e.Type != zk.EventNodeDataChanged {
+			panic(fmt.Sprintf("ZK - Unexpected event in watchNamespace - %s (%d)", e.Type.String(), e.Type))
+		}
 	}
 }
 
@@ -364,11 +350,7 @@ func (zkm *ZkManager) getWatchNodeChannel(votes []string) <-chan zk.Event {
 }
 
 func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
-	if zkm.watchLeaderChan != nil {
-		panic("Zk - Already watching next node")
-	}
-	zkm.watchLeaderChan = ch
-	e := <-zkm.watchLeaderChan
+	e := <-ch
 	if e.Type != zk.EventNodeDeleted {
 		panic("Zk - Invalid operation on vote")
 	}
@@ -384,14 +366,12 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 		// If smallest vote, become leader
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
-		zkm.watchLeaderChan = nil
 		// Watch for new nodes
 		zkm.watchNodes()
 	} else {
 		logger.Info().Msgf("Not leader, setting up leader watch")
 		// If not leader, setup watcher on next smallest node
 		watchChan := zkm.getWatchNodeChannel(votes)
-		zkm.watchLeaderChan = nil
 		zkm.watchNextNode(watchChan)
 	}
 }
