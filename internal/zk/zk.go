@@ -318,7 +318,7 @@ func (zkm *ZkManager) watchNodes() {
 func (zkm *ZkManager) watchNamespace() {
 	for {
 		data, _, nsmChan, err := zkm.c.GetW("/nodeToNamespaceMap")
-		if !errors.As(err, &zk.ErrNoNode) {
+		if err != nil {
 			panic(err)
 		}
 		nsmd := NodeToNamespaceMapData{}
