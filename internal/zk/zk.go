@@ -215,6 +215,7 @@ func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
 				nsmap.Map[node][ns] = true
 			}
 			// Write back to zk
+			logger.Info().Msgf("New NS map: %+v", nsmap.Map)
 			data, err = json.Marshal(nsmap)
 			if err != nil {
 				panic(err)
