@@ -301,16 +301,17 @@ func (zkm *ZkManager) watchNodes() {
 		panic(err)
 	}
 	zkm.watchNodesChan = nodesChan
-	childrenMap := map[string]bool{}
-	for _, c := range children {
-		childrenMap[c] = true
-	}
+
 	for {
+		childrenMap := map[string]bool{}
+		for _, c := range children {
+			childrenMap[c] = true
+		}
 		zkm.DistributeNamespaces(childrenMap)
 		e := <-zkm.watchNodesChan
 		logger.Info().Msgf("Detected change in agg nodes")
 		if e.Type != zk.EventNodeChildrenChanged {
-			panic(fmt.Sprintf("ZK - Unexpected event in watchNodes -  %s", e.Type.String()))
+			panic(fmt.Sprintf("ZK - Unexpected event in watchNodes -  %s (%d)", e.Type.String(), e.Type))
 		}
 		children, _, nodesChan, err = zkm.c.ChildrenW("/nodes")
 		if err != nil {
@@ -324,7 +325,7 @@ func (zkm *ZkManager) watchNamespace() {
 	for {
 		e := <-zkm.nsmChan
 		if e.Type != zk.EventNodeDataChanged {
-			panic(fmt.Sprintf("ZK - Unexpected event in watchNamespace - %s", e.Type.String()))
+			panic(fmt.Sprintf("ZK - Unexpected event in watchNamespace - %s (%d)", e.Type.String(), e.Type))
 		}
 		data, _, err := zkm.c.Get("/nodeToNamespaceMap/" + zkm.nodeName)
 		if !errors.As(err, &zk.ErrNoNode) {
