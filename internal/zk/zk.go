@@ -197,48 +197,56 @@ func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
 	}
 	logger.Info().Msgf("Namespaces about to be distributed: %+v", nonDistributedNs)
 
+	// Rebuild map, starting with already distributed namespaces
+	nsmap.Map = map[string]map[string]bool{}
+	logger.Info().Msgf("Distributed NS: %s", distributedNs)
+	for ns, node := range distributedNs {
+		if _, exists := nsmap.Map[node]; !exists {
+			nsmap.Map[node] = map[string]bool{}
+		}
+		nsmap.Map[node][ns] = true
+	}
+	// Keep track of changes
+	newlyDistributedNamespaces := map[string]string{}
 	// Find first non master node
 	for c := range children {
 		if zkm.nodeName != c {
 			// Put all non distributed namespaces into map for first non master node
-			logger.Info().Msgf("Distributed NS: %s", distributedNs)
+			// TODO Distribute the namespaces evenly
 			logger.Info().Msgf("Non distributed NS: %s", nonDistributedNs)
-			nsmap.Map[c] = map[string]bool{}
+			if _, exists := nsmap.Map[c]; !exists {
+				nsmap.Map[c] = map[string]bool{}
+			}
 			for _, ns := range nonDistributedNs {
 				nsmap.Map[c][ns] = true
-			}
-			// Combine with distributed namespaces
-			for ns, node := range distributedNs {
-				if _, exists := nsmap.Map[node]; !exists {
-					nsmap.Map[node] = map[string]bool{}
-				}
-				nsmap.Map[node][ns] = true
-			}
-			// Write back to zk
-			logger.Info().Msgf("New NS map: %+v", nsmap.Map)
-			data, err = json.Marshal(nsmap)
-			if err != nil {
-				panic(err)
-			}
-			_, err = zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
-			if err != nil {
-				panic(err)
-			}
-			// Create entries for all new namespaceToNode
-			for _, ns := range nonDistributedNs {
-				nsToNode := NamespaceToNodeData{Node: c}
-				nsToNodeData, err := json.Marshal(nsToNode)
-				if err != nil {
-					panic(err)
-				}
-				_, err = zkm.c.Create("/namespaceToNode/"+ns, nsToNodeData, 0, zk.WorldACL(zk.PermAll))
-				if err != nil {
-					logger.Error().Msgf("Error creating namespaceToNode entry %+v", "/namespaceToNode/"+ns)
-					panic(err)
-				}
+				newlyDistributedNamespaces[ns] = c
 			}
 			break
 		}
+	}
+	// Write back to zk
+	// Create entries for all new namespaceToNode
+	for ns, c := range newlyDistributedNamespaces {
+		nsToNode := NamespaceToNodeData{Node: c}
+		nsToNodeData, err := json.Marshal(nsToNode)
+		if err != nil {
+			panic(err)
+		}
+		_, err = zkm.c.Create("/namespaceToNode/"+ns, nsToNodeData, 0, zk.WorldACL(zk.PermAll))
+		if err != nil {
+			logger.Error().Msgf("Error creating namespaceToNode entry %+v", "/namespaceToNode/"+ns)
+			panic(err)
+		}
+	}
+	// Write back map
+	logger.Info().Msgf("New NS map: %+v", nsmap.Map)
+	data, err = json.Marshal(nsmap)
+	if err != nil {
+		panic(err)
+	}
+	_, err = zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
+	if err != nil {
+		panic(err)
 	}
 
 }
