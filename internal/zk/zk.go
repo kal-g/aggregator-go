@@ -201,8 +201,8 @@ func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
 	for c := range children {
 		if zkm.nodeName != c {
 			// Put all non distributed namespaces into map for first non master node
-			logger.Info().Msgf("Distributed NS: ", distributedNs)
-			logger.Info().Msgf("Non distributed NS: ", nonDistributedNs)
+			logger.Info().Msgf("Distributed NS: %s", distributedNs)
+			logger.Info().Msgf("Non distributed NS: %s", nonDistributedNs)
 			nsmap.Map[c] = map[string]bool{}
 			for _, ns := range nonDistributedNs {
 				nsmap.Map[c][ns] = true
