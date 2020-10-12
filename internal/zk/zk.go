@@ -413,6 +413,9 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 		// If smallest vote, become leader
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
+		// Unassign the nodes owned by this node, since it became leader
+		// They will be redistributed in watchNodes
+		zkm.unassignLeaderNamespaces()
 		// Watch for new nodes
 		zkm.watchNodes()
 	} else {
