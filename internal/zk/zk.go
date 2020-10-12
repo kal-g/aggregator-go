@@ -269,6 +269,9 @@ func (zkm *ZkManager) LeaderElection() {
 		// If smallest vote, become leader
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
+		// Unassign the nodes owned by this node, since it became leader
+		// They will be redistributed in watchNodes
+		zkm.unassignLeaderNamespaces()
 		// Setup watcher on namespace
 		go zkm.watchNamespace()
 		// Watch for new nodes
@@ -284,8 +287,44 @@ func (zkm *ZkManager) LeaderElection() {
 	}
 }
 
+func (zkm *ZkManager) unassignLeaderNamespaces() {
+	// Read map to get all our namespaces
+	data, stat, err := zkm.c.Get("/nodeToNamespaceMap")
+	if err != nil {
+		panic(err)
+	}
+	nsmd := NodeToNamespaceMapData{}
+	json.Unmarshal(data, &nsmd)
+	namespaces := nsmd.Map[zkm.nodeName]
+	logger.Info().Msgf("Became leader, unnassigning namespaces %v", namespaces)
+
+	// Remove namespaces from zk
+	for ns := range namespaces {
+		_, nodeStat, err := zkm.c.Get("/namespaceToNode")
+		if err != nil {
+			panic(err)
+		}
+		err = zkm.c.Delete("/namespaceToNode/"+ns, nodeStat.Version)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Modify and write back map
+	delete(nsmd.Map, zkm.nodeName)
+	data, err = json.Marshal(nsmd)
+	if err != nil {
+		panic(err)
+	}
+	_, err = zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
+
+	// Deactivate namespaces
+	for ns := range namespaces {
+		zkm.nsm.DeactivateNamespace(ns)
+	}
+}
+
 func (zkm *ZkManager) watchNodes() {
-	logger.Info().Msgf("Detected change in agg nodes")
 	children, _, nodesChan, err := zkm.c.ChildrenW("/nodes")
 	if err != nil {
 		panic(err)
