@@ -33,7 +33,6 @@ func TestEngine(t *testing.T) {
 		KeyField:   "key",
 		CountField: "",
 		MetricType: countMetricType,
-		Namespace:  "global",
 		Filter:     NullFilter{},
 		Storage:    storage,
 	}
@@ -99,12 +98,17 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 
 func TestNamespace(t *testing.T) {
 	storage := newNaiveStorage()
-	input, err := ioutil.ReadFile("../../config/aggregator_configs/global")
+	input1, err := ioutil.ReadFile("../../config/aggregator_configs/global")
+	if err != nil {
+		panic(err)
+	}
+	input2, err := ioutil.ReadFile("../../config/aggregator_configs/test")
 	if err != nil {
 		panic(err)
 	}
 	nsm := NewNSM(storage, true)
-	nsm.SetNamespaceFromData(input)
+	nsm.SetNamespaceFromData(input1)
+	nsm.SetNamespaceFromData(input2)
 
 	engine := NewEngine(&nsm)
 
