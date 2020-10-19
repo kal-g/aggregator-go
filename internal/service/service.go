@@ -17,9 +17,11 @@ type Service struct {
 
 // MakeNewService creates and initializes the aggregator service
 func MakeNewService(redisURL string, zkURL string, nodeName string, configFile string) Service {
+	singleNodeMode := zkURL == ""
 	storage := agg.NewRedisStorage(redisURL)
 	config := []byte{}
-	if configFile != "" {
+	// If config file specified, get config from file
+	if singleNodeMode && configFile != "" {
 		parsedConfig, err := ioutil.ReadFile(configFile)
 		if err != nil {
 			log.Fatal(err)
@@ -27,9 +29,13 @@ func MakeNewService(redisURL string, zkURL string, nodeName string, configFile s
 		config = parsedConfig
 	}
 
-	nsm := agg.NSMFromRaw(config, storage, zkURL == "")
+	nsm := agg.NSMFromRaw(config, storage, singleNodeMode)
 	engine := agg.NewEngine(&nsm)
 	zkm := zk.MakeNewZkManager(zkURL, nodeName, &nsm)
+	if !singleNodeMode {
+		zkm.ReadConfig()
+	}
+
 	svc := Service{
 		e:        engine,
 		zkm:      zkm,

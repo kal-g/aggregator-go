@@ -40,7 +40,7 @@ func NSMFromRaw(input []byte, storage AbstractStorage, singleNodeMode bool) Name
 		storage:       storage,
 		NsDataLck:     &sync.RWMutex{},
 	}
-	nsm.initConfigMaps(singleNodeMode)
+	nsm.InitConfigMaps(singleNodeMode)
 	return nsm
 }
 
@@ -52,8 +52,15 @@ func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractSto
 		storage:       storage,
 		NsDataLck:     &sync.RWMutex{},
 	}
-	nsm.initConfigMaps(singleNodeMode)
+	nsm.InitConfigMaps(singleNodeMode)
 	return nsm
+}
+
+func (nsm *NamespaceManager) AddConfigs(doc map[string]interface{}) {
+	ec := extractEventConfigs(doc)
+	mc := extractMetricConfigs(doc, nsm.storage)
+	nsm.EventConfigs = append(nsm.EventConfigs, ec...)
+	nsm.MetricConfigs = append(nsm.MetricConfigs, mc...)
 }
 
 func (nsm *NamespaceManager) ActivateNamespace(ns string) {
@@ -86,7 +93,7 @@ func (nsm *NamespaceManager) DeactivateNamespace(ns string) {
 
 // TODO Add zombie state for namespace
 
-func (nsm *NamespaceManager) initConfigMaps(singleNodeMode bool) {
+func (nsm *NamespaceManager) InitConfigMaps(singleNodeMode bool) {
 	nsMetaMap := make(map[string]NamespaceMetadata)
 	eventMap := make(map[int]*eventConfig)
 

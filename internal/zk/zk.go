@@ -85,11 +85,39 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager) 
 	return zkm
 }
 
+func (zkm ZkManager) ReadConfig() {
+	namespaces, _, err := zkm.c.Children("/configs")
+	if err != nil {
+		panic(err)
+	}
+
+	for _, ns := range namespaces {
+		var doc map[string]interface{}
+		data, _, err := zkm.c.Get("/configs/" + ns)
+		if err != nil {
+			panic(err)
+		}
+		if len(data) > 0 {
+			json.Unmarshal(data, &doc)
+		}
+		zkm.nsm.AddConfigs(doc)
+	}
+	zkm.nsm.InitConfigMaps(false)
+}
+
 // Setup sets up some directories, making sure they exist
 // Also registers the node with the cluster
 func (zkm ZkManager) Setup() {
 	// Election dir
 	_, err := zkm.c.Create("/election", []byte{}, 0, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		if !errors.Is(err, zk.ErrNodeExists) {
+			panic(err)
+		}
+	}
+
+	// Configs dir
+	_, err = zkm.c.Create("/configs", []byte{}, 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if !errors.Is(err, zk.ErrNodeExists) {
 			panic(err)
