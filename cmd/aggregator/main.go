@@ -55,7 +55,7 @@ func main() {
 	flag.Var(&configFiles, "config", "Config files")
 	flag.Parse()
 
-	fmt.Printf("Config %v\n", configFiles)
+	log.Info().Msgf("Config %v\n", configFiles)
 
 	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName)
 
