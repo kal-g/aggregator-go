@@ -45,3 +45,6 @@ func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
 }
+
+func (s *Service) NamespaceSetConfig(w http.ResponseWriter, r *http.Request) {
+}
