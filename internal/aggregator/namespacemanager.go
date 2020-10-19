@@ -15,43 +15,73 @@ type NamespaceMetadata struct {
 
 // NamespaceManager manages namespace access and metadata
 type NamespaceManager struct {
-	EventConfigs     []*eventConfig
-	MetricConfigs    []*metricConfig
-	storage          AbstractStorage
-	NsDataLck        *sync.RWMutex
-	EventMap         map[int]*eventConfig
-	MetricMap        map[string]map[int]*metricConfig
-	EventToMetricMap map[string]map[int][]*metricConfig
-	ActiveNamespaces map[string]NamespaceMetadata
+	EventConfigsByNamespace  map[string]map[int]*eventConfig
+	MetricConfigsByNamespace map[string]map[int]*metricConfig
+	storage                  AbstractStorage
+	NsDataLck                *sync.RWMutex
+	EventToMetricMap         map[string]map[int][]*metricConfig
+	ActiveNamespaces         map[string]NamespaceMetadata
+	SingleNodeMode           bool
 }
 
 var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "NSM").Logger()
 
 // NSMFromRaw creates a namespace manager from a byte stream
-func NSMFromRaw(input []byte, storage AbstractStorage, singleNodeMode bool) NamespaceManager {
-	var doc map[string]interface{}
-	json.Unmarshal(input, &doc)
+func NewNSM(storage AbstractStorage, singleNodeMode bool) NamespaceManager {
 
 	nsm := NamespaceManager{
-		EventConfigs:  extractEventConfigs(doc),
-		MetricConfigs: extractMetricConfigs(doc, storage),
-		storage:       storage,
-		NsDataLck:     &sync.RWMutex{},
+		EventConfigsByNamespace:  map[string]map[int]*eventConfig{},
+		MetricConfigsByNamespace: map[string]map[int]*metricConfig{},
+		storage:                  storage,
+		NsDataLck:                &sync.RWMutex{},
+		EventToMetricMap:         map[string]map[int][]*metricConfig{},
+		ActiveNamespaces:         map[string]NamespaceMetadata{},
+		SingleNodeMode:           singleNodeMode,
 	}
-	nsm.initConfigMaps(singleNodeMode)
 	return nsm
 }
 
-// NSMFromConfigs creates a namespace manager from configs
-func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractStorage, singleNodeMode bool) NamespaceManager {
-	nsm := NamespaceManager{
-		EventConfigs:  ecs,
-		MetricConfigs: mcs,
-		storage:       storage,
-		NsDataLck:     &sync.RWMutex{},
+func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
+	var doc map[string]interface{}
+	json.Unmarshal(data, &doc)
+
+	// Extract namespace
+	ns := doc["namespace"].(string)
+
+	// Extract event configs
+	ecs := extractEventConfigs(doc)
+
+	// Extract metric configs
+	mcs := extractMetricConfigs(doc, nsm.storage)
+
+	nsm.SetNamespaceFromConfig(ns, ecs, mcs)
+}
+
+func (nsm *NamespaceManager) SetNamespaceFromConfig(ns string, ecs map[int]*eventConfig, mcs map[int]*metricConfig) {
+	// Create a map from event id to metric configs
+	nsMap := make(map[int][]*metricConfig)
+
+	for _, mc := range mcs {
+		for _, eventID := range mc.EventIds {
+			// Initialize the slice if it doesn't exist
+			_, metricExists := nsMap[eventID]
+			if !metricExists {
+				nsMap[eventID] = []*metricConfig{}
+			}
+			nsMap[eventID] = append(nsMap[eventID], mc)
+		}
 	}
-	nsm.initConfigMaps(singleNodeMode)
-	return nsm
+	nsm.EventToMetricMap[ns] = nsMap
+
+	// Set map from event id to event config
+	nsm.EventConfigsByNamespace[ns] = ecs
+
+	// Set map from metric ID to metric
+	nsm.MetricConfigsByNamespace[ns] = mcs
+
+	if nsm.SingleNodeMode {
+		nsm.ActivateNamespace(ns)
+	}
 }
 
 func (nsm *NamespaceManager) ActivateNamespace(ns string) {
@@ -66,7 +96,7 @@ func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 		KeySizeMap: map[int]int{},
 	}
 
-	for _, mc := range nsm.MetricConfigs {
+	for _, mc := range nsm.MetricConfigsByNamespace[ns] {
 		if ns == mc.Namespace {
 			// TODO init with old values
 			nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
@@ -82,69 +112,9 @@ func (nsm *NamespaceManager) DeactivateNamespace(ns string) {
 	nsm.NsDataLck.Unlock()
 }
 
-// TODO Add zombie state for namespace
-
-func (nsm *NamespaceManager) initConfigMaps(singleNodeMode bool) {
-	nsMetaMap := make(map[string]NamespaceMetadata)
-	eventMap := make(map[int]*eventConfig)
-
-	if singleNodeMode {
-		for _, mc := range nsm.MetricConfigs {
-			ns := mc.Namespace
-			_, exists := nsMetaMap[ns]
-			if !exists {
-				nsMetaMap[ns] = NamespaceMetadata{
-					KeySizeMap: map[int]int{},
-				}
-			}
-			nsMetaMap[ns].KeySizeMap[mc.ID] = 0
-		}
-	}
-
-	// Create a map from event id to event config
-	for _, eventConfig := range nsm.EventConfigs {
-		eventMap[eventConfig.ID] = eventConfig
-	}
-
-	// Create a map from metric ID to metric
-	metricMap := make(map[string]map[int]*metricConfig)
-	for _, mc := range nsm.MetricConfigs {
-		// Init the namespace if it doesn't exist
-		_, namespaceExists := metricMap[mc.Namespace]
-		if !namespaceExists {
-			metricMap[mc.Namespace] = make(map[int]*metricConfig)
-		}
-		metricMap[mc.Namespace][mc.ID] = mc
-	}
-
-	// Create a map from event id to metric configs
-	eventToMetricMap := make(map[string]map[int][]*metricConfig)
-	for _, mc := range nsm.MetricConfigs {
-		// Init the namespace if it doesn't exist
-		_, namespaceExists := eventToMetricMap[mc.Namespace]
-		if !namespaceExists {
-			eventToMetricMap[mc.Namespace] = make(map[int][]*metricConfig)
-		}
-		for _, eventID := range mc.EventIds {
-			// Initialize the slice if it doesn't exist
-			_, metricExists := eventToMetricMap[mc.Namespace][eventID]
-			if !metricExists {
-				eventToMetricMap[mc.Namespace][eventID] = []*metricConfig{}
-			}
-			eventToMetricMap[mc.Namespace][eventID] = append(eventToMetricMap[mc.Namespace][eventID], metricMap[mc.Namespace][mc.ID])
-		}
-	}
-
-	nsm.EventMap = eventMap
-	nsm.MetricMap = metricMap
-	nsm.EventToMetricMap = eventToMetricMap
-	nsm.ActiveNamespaces = nsMetaMap
-
-}
-
-func extractEventConfigs(doc map[string]interface{}) []*eventConfig {
+func extractEventConfigs(doc map[string]interface{}) map[int]*eventConfig {
 	reConfigs := doc["events"].([]interface{})
-	eConfigs := []*eventConfig{}
+	eConfigs := map[int]*eventConfig{}
 	for _, reConfig := range reConfigs {
 		reConfig := reConfig.(map[string]interface{})
 		// Get the initializers for the event config
@@ -161,14 +131,14 @@ func extractEventConfigs(doc map[string]interface{}) []*eventConfig {
 			ID:     id,
 			Fields: fields,
 		}
-		eConfigs = append(eConfigs, &ec)
+		eConfigs[ec.ID] = &ec
 	}
 	return eConfigs
 }
 
-func extractMetricConfigs(doc map[string]interface{}, storage AbstractStorage) []*metricConfig {
+func extractMetricConfigs(doc map[string]interface{}, storage AbstractStorage) map[int]*metricConfig {
 	rmConfigs := doc["metrics"].([]interface{})
-	mConfigs := []*metricConfig{}
+	mConfigs := map[int]*metricConfig{}
 	for _, rmConfig := range rmConfigs {
 		rmConfig := rmConfig.(map[string]interface{})
 		// Get the initializers for the metric config
@@ -196,7 +166,7 @@ func extractMetricConfigs(doc map[string]interface{}, storage AbstractStorage) [
 			Filter:     extractMetricFilters(rmConfig["filter"].([]interface{})),
 			Storage:    storage,
 		}
-		mConfigs = append(mConfigs, &mc)
+		mConfigs[mc.ID] = &mc
 	}
 	return mConfigs
 }

@@ -187,7 +187,7 @@ func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
 
 	// check against metric map to find non distributed namespaces
 	nonDistributedNs := []string{}
-	for ns := range zkm.nsm.MetricMap {
+	for ns := range zkm.nsm.MetricConfigsByNamespace {
 		if _, exists := distributedNs[ns]; !exists {
 			nonDistributedNs = append(nonDistributedNs, ns)
 		}
