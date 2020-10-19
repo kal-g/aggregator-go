@@ -45,7 +45,7 @@ func (e Engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 	}
 	// Check namespace
 	e.Nsm.NsDataLck.RLock()
-	if _, nsExists := e.Nsm.NsMetaMap[namespace]; !nsExists {
+	if _, nsExists := e.Nsm.ActiveNamespaces[namespace]; !nsExists {
 		return &NamespaceNotFoundError{}
 	}
 	e.Nsm.NsDataLck.RUnlock()
@@ -66,7 +66,7 @@ func (e Engine) handleEvent(event event, namespace string) error {
 		_, isNew := metricConfig.handleEvent(event)
 		if isNew {
 			e.Nsm.NsDataLck.RLock()
-			e.Nsm.NsMetaMap[metricConfig.Namespace].KeySizeMap[metricConfig.ID]++
+			e.Nsm.ActiveNamespaces[metricConfig.Namespace].KeySizeMap[metricConfig.ID]++
 			e.Nsm.NsDataLck.RUnlock()
 		}
 	}
@@ -79,7 +79,7 @@ func (e Engine) getMetricConfigs(event event, namespace string) []*metricConfig 
 	e.Nsm.NsDataLck.RLock()
 	// Get all configs in the specified namespace
 	// Check if namespace active on this node
-	if _, exists := e.Nsm.NsMetaMap[namespace]; exists {
+	if _, exists := e.Nsm.ActiveNamespaces[namespace]; exists {
 		specificNamespace, namespaceExists := e.Nsm.EventToMetricMap[namespace]
 		if namespaceExists {
 			namespaceConfigs, namespaceConfigsExist := specificNamespace[event.ID]

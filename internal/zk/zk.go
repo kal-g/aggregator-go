@@ -366,7 +366,7 @@ func (zkm *ZkManager) watchNamespace() {
 		for ns := range nsmd.Map[zkm.nodeName] {
 			zkm.nsm.ActivateNamespace(ns)
 		}
-		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.NsMetaMap)
+		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.ActiveNamespaces)
 		e := <-nsmChan
 		if e.Type != zk.EventNodeDataChanged {
 			panic(fmt.Sprintf("ZK - Unexpected event in watchNamespace - %s (%d)", e.Type.String(), e.Type))

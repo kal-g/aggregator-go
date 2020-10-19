@@ -22,7 +22,7 @@ type NamespaceManager struct {
 	EventMap         map[int]*eventConfig
 	MetricMap        map[string]map[int]*metricConfig
 	EventToMetricMap map[string]map[int][]*metricConfig
-	NsMetaMap        map[string]NamespaceMetadata
+	ActiveNamespaces map[string]NamespaceMetadata
 }
 
 var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "NSM").Logger()
@@ -57,19 +57,19 @@ func NSMFromConfigs(ecs []*eventConfig, mcs []*metricConfig, storage AbstractSto
 func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 	nsm.NsDataLck.Lock()
 	nsLogger.Info().Msgf("Activating namespace %s", ns)
-	if _, exists := nsm.NsMetaMap[ns]; exists {
+	if _, exists := nsm.ActiveNamespaces[ns]; exists {
 		nsm.NsDataLck.Unlock()
 		return
 	}
 
-	nsm.NsMetaMap[ns] = NamespaceMetadata{
+	nsm.ActiveNamespaces[ns] = NamespaceMetadata{
 		KeySizeMap: map[int]int{},
 	}
 
 	for _, mc := range nsm.MetricConfigs {
 		if ns == mc.Namespace {
 			// TODO init with old values
-			nsm.NsMetaMap[ns].KeySizeMap[mc.ID] = 0
+			nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
 		}
 
 	}
@@ -78,7 +78,7 @@ func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 
 func (nsm *NamespaceManager) DeactivateNamespace(ns string) {
 	nsm.NsDataLck.Lock()
-	delete(nsm.NsMetaMap, ns)
+	delete(nsm.ActiveNamespaces, ns)
 	nsm.NsDataLck.Unlock()
 }
 
@@ -138,7 +138,7 @@ func (nsm *NamespaceManager) initConfigMaps(singleNodeMode bool) {
 	nsm.EventMap = eventMap
 	nsm.MetricMap = metricMap
 	nsm.EventToMetricMap = eventToMetricMap
-	nsm.NsMetaMap = nsMetaMap
+	nsm.ActiveNamespaces = nsMetaMap
 
 }
 
