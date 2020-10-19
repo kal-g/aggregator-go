@@ -30,7 +30,9 @@ var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "NSM")
 // NSMFromRaw creates a namespace manager from a byte stream
 func NSMFromRaw(input []byte, storage AbstractStorage, singleNodeMode bool) NamespaceManager {
 	var doc map[string]interface{}
-	json.Unmarshal(input, &doc)
+	if len(input) > 0 {
+		json.Unmarshal(input, &doc)
+	}
 
 	nsm := NamespaceManager{
 		EventConfigs:  extractEventConfigs(doc),

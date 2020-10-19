@@ -26,18 +26,19 @@ type configEnv struct {
 	NodeName string `env:"NODE_NAME,required"`
 	RedisURL string `env:"REDIS_URL,required"`
 	ZkURL    string `env:"ZOOKEEPER_URL"`
+	CfgFile  string `env:"CONFIG_FILE"`
 }
 
 var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "SVC").Logger()
 
 func main() {
-  zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	var cfg configEnv
 	if err := env.Parse(&cfg); err != nil {
 		panic(err)
 	}
 
-	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName)
+	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName, cfg.CfgFile)
 
 	r := mux.NewRouter()
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")

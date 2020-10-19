@@ -73,7 +73,7 @@ jobs:
       - run:
           name: Start test
           command: |
-            docker run --network container:redis -e NODE_NAME=agg -e REDIS_URL=redis:6379 $IMAGE_NAME:e2e
+            docker run --network container:redis -e NODE_NAME=agg -e CONFIG_FILE=config/example $IMAGE_NAME:e2e
 workflows:
   version: 2.1
   build-master:

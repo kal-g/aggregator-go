@@ -6,6 +6,7 @@ function end {
 }
 
 export REDIS_URL="localhost:6379"
+export CONFIG_FILE="config/example"
 ./bin/aggregator >bin/writer_logs &
 echo "Starting test"
 sleep 0.1
