@@ -97,10 +97,8 @@ func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 	}
 
 	for _, mc := range nsm.MetricConfigsByNamespace[ns] {
-		if ns == mc.Namespace {
-			// TODO init with old values
-			nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
-		}
+		// TODO init with old values
+		nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
 
 	}
 	nsm.NsDataLck.Unlock()
@@ -145,7 +143,6 @@ func extractMetricConfigs(doc map[string]interface{}, storage AbstractStorage) m
 		name := rmConfig["name"].(string)
 		id := int(rmConfig["id"].(float64))
 		keyField := rmConfig["key_field"].(string)
-		namespace := rmConfig["namespace"].(string)
 		// TODO Replace when adding other types
 		//metric_type := raw_metric_config["type"].(string)
 		countField := rmConfig["count_field"].(string)
@@ -162,7 +159,6 @@ func extractMetricConfigs(doc map[string]interface{}, storage AbstractStorage) m
 			KeyField:   keyField,
 			CountField: countField,
 			MetricType: countMetricType,
-			Namespace:  namespace,
 			Filter:     extractMetricFilters(rmConfig["filter"].([]interface{})),
 			Storage:    storage,
 		}

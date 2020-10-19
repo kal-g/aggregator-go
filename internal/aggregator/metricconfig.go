@@ -12,7 +12,6 @@ type metricConfig struct {
 	KeyField   string
 	CountField string
 	MetricType metricType
-	Namespace  string
 	Filter     abstractFilter
 	Storage    AbstractStorage
 }
@@ -24,7 +23,7 @@ type MetricCountResult struct {
 	Count int
 }
 
-func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
+func (mc metricConfig) handleEvent(event event, ns string) (metricHandleResult, bool) {
 	isNew := false
 	// Can assume that event is of the right type
 	// Check that the event passes the filter
@@ -33,8 +32,8 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 	}
 
 	// Get metric from storage, or initialize if it doesn't exist
-	mc.Storage.Lock(mc.Namespace)
-	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, mc.Namespace)
+	mc.Storage.Lock(ns)
+	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, ns)
 	r := mc.Storage.Get(storageKey)
 
 	if errors.Is(r.Err, &StorageKeyNotFoundError{}) {
@@ -49,13 +48,13 @@ func (mc metricConfig) handleEvent(event event) (metricHandleResult, bool) {
 
 	// Put back in storage
 	mc.Storage.IncrBy(storageKey, incrementBy)
-	mc.Storage.Unlock(mc.Namespace)
+	mc.Storage.Unlock(ns)
 	return noError, isNew
 
 }
 
-func (mc metricConfig) getCount(metricKey int) MetricCountResult {
-	storageKey := getMetricStorageKey(metricKey, mc.ID, mc.Namespace)
+func (mc metricConfig) getCount(metricKey int, ns string) MetricCountResult {
+	storageKey := getMetricStorageKey(metricKey, mc.ID, ns)
 	r := mc.Storage.Get(storageKey)
 	if r.Err != nil {
 		return MetricCountResult{

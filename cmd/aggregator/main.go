@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/caarlos0/env"
@@ -34,7 +35,7 @@ var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "SVC").L
 type configFlags []string
 
 func (i *configFlags) String() string {
-	return fmt.Sprintf("%v\n", i)
+	return strings.Join(*i, "-")
 }
 
 func (i *configFlags) Set(value string) error {

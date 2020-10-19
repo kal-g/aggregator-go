@@ -63,10 +63,10 @@ func (e Engine) handleEvent(event event, namespace string) error {
 
 	// Handle this event for each of these metric configs
 	for _, metricConfig := range metricConfigs {
-		_, isNew := metricConfig.handleEvent(event)
+		_, isNew := metricConfig.handleEvent(event, namespace)
 		if isNew {
 			e.Nsm.NsDataLck.RLock()
-			e.Nsm.ActiveNamespaces[metricConfig.Namespace].KeySizeMap[metricConfig.ID]++
+			e.Nsm.ActiveNamespaces[namespace].KeySizeMap[metricConfig.ID]++
 			e.Nsm.NsDataLck.RUnlock()
 		}
 	}
@@ -109,5 +109,5 @@ func (e Engine) GetMetricCount(ns string, metricKey int, metricID int) MetricCou
 			Count: 0,
 		}
 	}
-	return mc.getCount(metricKey)
+	return mc.getCount(metricKey, ns)
 }
