@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-zookeeper/zk"
 	"github.com/rs/zerolog"
@@ -50,11 +53,19 @@ func (l ZkLogger) Printf(fmt string, args ...interface{}) {
 
 // MakeNewZkManager inits and connects to zk
 // If no url given, sets local only mode
-func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager) *ZkManager {
+func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, configFiles []string) *ZkManager {
 	logger := zerolog.New(os.Stderr).With().Str("source", "ZK").Logger()
 
 	if zkURL == "" {
 		logger.Info().Msgf("Local only mode")
+		for _, c := range configFiles {
+			data, err := ioutil.ReadFile(c)
+			if err != nil {
+				log.Fatal().Err(err)
+			}
+			logger.Info().Msgf("Using config locally: %+v", c)
+			nsm.SetNamespaceFromData(data)
+		}
 		return &ZkManager{
 			c:              nil,
 			localOnlyMode:  true,
@@ -82,6 +93,8 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager) 
 	}
 	zkm.Setup()
 	zkm.LeaderElection()
+	zkm.ingestConfigsToZK(configFiles)
+	go zkm.watchConfigs()
 	return zkm
 }
 
@@ -136,6 +149,13 @@ func (zkm ZkManager) Setup() {
 	}
 
 	_, err = zkm.c.Create("/namespaceToNode", []byte{}, 0, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		if !errors.Is(err, zk.ErrNodeExists) {
+			panic(err)
+		}
+	}
+
+	_, err = zkm.c.Create("/configs", []byte{}, 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if !errors.Is(err, zk.ErrNodeExists) {
 			panic(err)
@@ -426,10 +446,54 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 	}
 }
 
-// TODO Init nodes to namespace
+func (zkm *ZkManager) ingestConfigsToZK(configFiles []string) {
+	for _, c := range configFiles {
+		data, err := ioutil.ReadFile(c)
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+		// Extract namespace
+		var doc map[string]interface{}
+		json.Unmarshal(data, &doc)
+		ns := doc["namespace"].(string)
+		logger.Info().Msgf("Ingesting config for ns %v into ZK", ns)
+		// If exists, set, otherwise, create
+		data, stat, err := zkm.c.Get("/configs/" + ns)
+		if err != nil {
+			if errors.Is(err, zk.ErrNoNode) {
+				_, err := zkm.c.Create("/configs/"+ns, data, 0, zk.WorldACL(zk.PermAll))
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				panic(err)
+			}
+		} else {
+			_, err := zkm.c.Set("/configs/"+ns, data, stat.Version)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+}
 
-// TODO Init namespace to node
-
-// TODO Register for changes in namespace map
-
-// TODO Master: Distribute namespaces
+func (zkm *ZkManager) watchConfigs() {
+	for {
+		configs, _, watchChan, err := zkm.c.ChildrenW("/configs")
+		if err != nil {
+			panic(err)
+		}
+		logger.Info().Msgf("Setting configs %+v", configs)
+		for _, ns := range configs {
+			data, _, err := zkm.c.Get("/configs/" + ns)
+			if err != nil {
+				panic(err)
+			}
+			zkm.nsm.SetNamespaceFromData(data)
+		}
+		e := <-watchChan
+		if e.Type != zk.EventNodeChildrenChanged {
+			panic(fmt.Sprintf("ZK - Unexpected event in watchConfigs -  %s (%d)", e.Type.String(), e.Type))
+		}
+	}
+}

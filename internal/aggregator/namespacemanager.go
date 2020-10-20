@@ -57,6 +57,7 @@ func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
 }
 
 func (nsm *NamespaceManager) SetNamespaceFromConfig(ns string, ecs map[int]*eventConfig, mcs map[int]*metricConfig) {
+	nsm.NsDataLck.Lock()
 	// Create a map from event id to metric configs
 	nsMap := make(map[int][]*metricConfig)
 
@@ -77,6 +78,7 @@ func (nsm *NamespaceManager) SetNamespaceFromConfig(ns string, ecs map[int]*even
 
 	// Set map from metric ID to metric
 	nsm.MetricConfigsByNamespace[ns] = mcs
+	nsm.NsDataLck.Unlock()
 
 	if nsm.SingleNodeMode {
 		nsm.ActivateNamespace(ns)

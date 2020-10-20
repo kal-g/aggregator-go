@@ -1,6 +1,10 @@
 package service
 
 import (
+	"io/ioutil"
+
+	"github.com/rs/zerolog/log"
+
 	agg "github.com/kal-g/aggregator-go/internal/aggregator"
 	"github.com/kal-g/aggregator-go/internal/zk"
 )
@@ -14,17 +18,24 @@ type Service struct {
 }
 
 // MakeNewService creates and initializes the aggregator service
-func MakeNewService(redisURL string, zkURL string, nodeName string) Service {
+func MakeNewService(redisURL string, zkURL string, nodeName string, configFiles []string) Service {
 	storage := agg.NewRedisStorage(redisURL)
 	nsm := agg.NewNSM(storage, zkURL == "")
-	// Get list of configs
 	engine := agg.NewEngine(&nsm)
-	zkm := zk.MakeNewZkManager(zkURL, nodeName, &nsm)
+	zkm := zk.MakeNewZkManager(zkURL, nodeName, &nsm, configFiles)
 	svc := Service{
 		e:        engine,
 		zkm:      zkm,
 		nodeName: nodeName,
 		Nsm:      &nsm,
+	}
+	// Read configs files into ZK if provided
+	for _, c := range configFiles {
+		data, err := ioutil.ReadFile(c)
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+		svc.Nsm.SetNamespaceFromData(data)
 	}
 	return svc
 }
