@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -58,14 +57,7 @@ func main() {
 
 	log.Info().Msgf("Loading config: %v\n", configFiles)
 
-	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName)
-	for _, c := range configFiles {
-		data, err := ioutil.ReadFile(c)
-		if err != nil {
-			log.Fatal().Err(err)
-		}
-		svc.Nsm.SetNamespaceFromData(data)
-	}
+	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName, configFiles)
 
 	r := mux.NewRouter()
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")
