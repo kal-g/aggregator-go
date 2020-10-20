@@ -1,10 +1,6 @@
 package service
 
 import (
-	"io/ioutil"
-
-	"github.com/rs/zerolog/log"
-
 	agg "github.com/kal-g/aggregator-go/internal/aggregator"
 	"github.com/kal-g/aggregator-go/internal/zk"
 )
@@ -28,14 +24,6 @@ func MakeNewService(redisURL string, zkURL string, nodeName string, configFiles 
 		zkm:      zkm,
 		nodeName: nodeName,
 		Nsm:      &nsm,
-	}
-	// Read configs files into ZK if provided
-	for _, c := range configFiles {
-		data, err := ioutil.ReadFile(c)
-		if err != nil {
-			log.Fatal().Err(err)
-		}
-		svc.Nsm.SetNamespaceFromData(data)
 	}
 	return svc
 }
