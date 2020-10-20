@@ -24,6 +24,7 @@ func MakeNewService(redisURL string, zkURL string, nodeName string) Service {
 		e:        engine,
 		zkm:      zkm,
 		nodeName: nodeName,
+		Nsm:      &nsm,
 	}
 	return svc
 }

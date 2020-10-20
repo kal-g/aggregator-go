@@ -56,7 +56,7 @@ func main() {
 	flag.Var(&configFiles, "config", "Config files")
 	flag.Parse()
 
-	log.Info().Msgf("Config %v\n", configFiles)
+	log.Info().Msgf("Loading config: %v\n", configFiles)
 
 	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName)
 	for _, c := range configFiles {

@@ -44,7 +44,6 @@ func NewNSM(storage AbstractStorage, singleNodeMode bool) NamespaceManager {
 func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
 	var doc map[string]interface{}
 	json.Unmarshal(data, &doc)
-
 	// Extract namespace
 	ns := doc["namespace"].(string)
 
