@@ -1,9 +1,6 @@
 package service
 
 import (
-	"io/ioutil"
-	"log"
-
 	agg "github.com/kal-g/aggregator-go/internal/aggregator"
 	"github.com/kal-g/aggregator-go/internal/zk"
 )
@@ -13,6 +10,7 @@ type Service struct {
 	e        agg.Engine
 	zkm      *zk.ZkManager
 	nodeName string
+	Nsm      *agg.NamespaceManager
 }
 
 // MakeNewService creates and initializes the aggregator service
@@ -28,12 +26,4 @@ func MakeNewService(redisURL string, zkURL string, nodeName string) Service {
 		nodeName: nodeName,
 	}
 	return svc
-}
-
-func getConfigText() []byte {
-	content, err := ioutil.ReadFile("config/example")
-	if err != nil {
-		log.Fatal(err)
-	}
-	return content
 }
