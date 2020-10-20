@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/caarlos0/env"
@@ -30,14 +33,39 @@ type configEnv struct {
 
 var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "SVC").Logger()
 
+type configFlags []string
+
+func (i *configFlags) String() string {
+	return strings.Join(*i, "-")
+}
+
+func (i *configFlags) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+var configFiles configFlags
+
 func main() {
-  zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	var cfg configEnv
 	if err := env.Parse(&cfg); err != nil {
 		panic(err)
 	}
 
+	flag.Var(&configFiles, "config", "Config files")
+	flag.Parse()
+
+	log.Info().Msgf("Loading config: %v\n", configFiles)
+
 	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName)
+	for _, c := range configFiles {
+		data, err := ioutil.ReadFile(c)
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+		svc.Nsm.SetNamespaceFromData(data)
+	}
 
 	r := mux.NewRouter()
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")

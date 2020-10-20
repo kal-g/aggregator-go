@@ -2,7 +2,7 @@
 set -e
 
 export REDIS_URL="localhost:6379"
-./bin/aggregator >bin/writer_logs &
+./bin/aggregator --config "config/aggregator_configs/global" --config "config/aggregator_configs/test" >bin/writer_logs &
 
 sleep 5
 mkdir -p bin/client_logs

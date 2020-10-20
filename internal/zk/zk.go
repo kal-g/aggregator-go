@@ -187,7 +187,7 @@ func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
 
 	// check against metric map to find non distributed namespaces
 	nonDistributedNs := []string{}
-	for ns := range zkm.nsm.MetricMap {
+	for ns := range zkm.nsm.MetricConfigsByNamespace {
 		if _, exists := distributedNs[ns]; !exists {
 			nonDistributedNs = append(nonDistributedNs, ns)
 		}
@@ -366,7 +366,7 @@ func (zkm *ZkManager) watchNamespace() {
 		for ns := range nsmd.Map[zkm.nodeName] {
 			zkm.nsm.ActivateNamespace(ns)
 		}
-		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.NsMetaMap)
+		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.ActiveNamespaces)
 		e := <-nsmChan
 		if e.Type != zk.EventNodeDataChanged {
 			panic(fmt.Sprintf("ZK - Unexpected event in watchNamespace - %s (%d)", e.Type.String(), e.Type))

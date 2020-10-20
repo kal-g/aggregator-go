@@ -19,7 +19,7 @@ func TestEngine(t *testing.T) {
 		ID:     1,
 		Fields: fields,
 	}
-	ecs := []*eventConfig{&ec}
+	ecs := map[int]*eventConfig{1: &ec}
 	eIDs := []int{1}
 
 	// Create raw event
@@ -33,14 +33,14 @@ func TestEngine(t *testing.T) {
 		KeyField:   "key",
 		CountField: "",
 		MetricType: countMetricType,
-		Namespace:  "global",
 		Filter:     NullFilter{},
 		Storage:    storage,
 	}
-	mcs := []*metricConfig{&mc}
-	parser := NSMFromConfigs(ecs, mcs, storage, true)
+	mcs := map[int]*metricConfig{1: &mc}
+	nsm := NewNSM(storage, true)
+	nsm.SetNamespaceFromConfig("global", ecs, mcs)
 	// Create engine
-	engine := NewEngine(&parser)
+	engine := NewEngine(&nsm)
 
 	// Handle a basic event
 	result := engine.HandleRawEvent(re, "global")
@@ -60,8 +60,12 @@ func TestNaiveE2E(t *testing.T) {
 }
 
 func E2ETest(t *testing.T, storage AbstractStorage) {
-	input, _ := ioutil.ReadFile("../../config/example")
-	nsm := NSMFromRaw(input, storage, true)
+	input, err := ioutil.ReadFile("../../config/aggregator_configs/global")
+	if err != nil {
+		panic(err)
+	}
+	nsm := NewNSM(storage, true)
+	nsm.SetNamespaceFromData(input)
 	engine := NewEngine(&nsm)
 
 	// Handle a filtered event
@@ -94,8 +98,18 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 
 func TestNamespace(t *testing.T) {
 	storage := newNaiveStorage()
-	input, _ := ioutil.ReadFile("../../config/example")
-	nsm := NSMFromRaw(input, storage, true)
+	input1, err := ioutil.ReadFile("../../config/aggregator_configs/global")
+	if err != nil {
+		panic(err)
+	}
+	input2, err := ioutil.ReadFile("../../config/aggregator_configs/test")
+	if err != nil {
+		panic(err)
+	}
+	nsm := NewNSM(storage, true)
+	nsm.SetNamespaceFromData(input1)
+	nsm.SetNamespaceFromData(input2)
+
 	engine := NewEngine(&nsm)
 
 	// Handle a basic

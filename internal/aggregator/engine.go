@@ -34,7 +34,7 @@ func (e Engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 	}
 	// Get the config for the event
 	// TODO Add RW lock for events
-	eventConfig, configExists := e.Nsm.EventMap[idTyped]
+	eventConfig, configExists := e.Nsm.EventConfigsByNamespace[namespace][idTyped]
 	if !configExists {
 		return &EventConfigNotFoundError{}
 	}
@@ -45,7 +45,7 @@ func (e Engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 	}
 	// Check namespace
 	e.Nsm.NsDataLck.RLock()
-	if _, nsExists := e.Nsm.NsMetaMap[namespace]; !nsExists {
+	if _, nsExists := e.Nsm.ActiveNamespaces[namespace]; !nsExists {
 		return &NamespaceNotFoundError{}
 	}
 	e.Nsm.NsDataLck.RUnlock()
@@ -63,10 +63,10 @@ func (e Engine) handleEvent(event event, namespace string) error {
 
 	// Handle this event for each of these metric configs
 	for _, metricConfig := range metricConfigs {
-		_, isNew := metricConfig.handleEvent(event)
+		_, isNew := metricConfig.handleEvent(event, namespace)
 		if isNew {
 			e.Nsm.NsDataLck.RLock()
-			e.Nsm.NsMetaMap[metricConfig.Namespace].KeySizeMap[metricConfig.ID]++
+			e.Nsm.ActiveNamespaces[namespace].KeySizeMap[metricConfig.ID]++
 			e.Nsm.NsDataLck.RUnlock()
 		}
 	}
@@ -79,7 +79,7 @@ func (e Engine) getMetricConfigs(event event, namespace string) []*metricConfig 
 	e.Nsm.NsDataLck.RLock()
 	// Get all configs in the specified namespace
 	// Check if namespace active on this node
-	if _, exists := e.Nsm.NsMetaMap[namespace]; exists {
+	if _, exists := e.Nsm.ActiveNamespaces[namespace]; exists {
 		specificNamespace, namespaceExists := e.Nsm.EventToMetricMap[namespace]
 		if namespaceExists {
 			namespaceConfigs, namespaceConfigsExist := specificNamespace[event.ID]
@@ -93,21 +93,21 @@ func (e Engine) getMetricConfigs(event event, namespace string) []*metricConfig 
 }
 
 // GetMetricCount gets the value for a given metric
-func (e Engine) GetMetricCount(namespaceName string, metricKey int, metricID int) MetricCountResult {
+func (e Engine) GetMetricCount(ns string, metricKey int, metricID int) MetricCountResult {
 
-	namespace, namespaceExists := e.Nsm.MetricMap[namespaceName]
+	mcs, namespaceExists := e.Nsm.MetricConfigsByNamespace[ns]
 	if !namespaceExists {
 		return MetricCountResult{
 			Err:   &NamespaceNotFoundError{},
 			Count: 0,
 		}
 	}
-	mc, mcExists := namespace[metricID]
+	mc, mcExists := mcs[metricID]
 	if !mcExists {
 		return MetricCountResult{
 			Err:   &MetricConfigNotFoundError{},
 			Count: 0,
 		}
 	}
-	return mc.getCount(metricKey)
+	return mc.getCount(metricKey, ns)
 }
