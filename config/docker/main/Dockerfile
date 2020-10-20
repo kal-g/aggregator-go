@@ -7,4 +7,4 @@ RUN make
 
 EXPOSE 50051
 
-ENTRYPOINT ["./bin/aggregator"]
+ENTRYPOINT ["./bin/aggregator", "--config", "config/aggregator_configs/global", "--config", "config/aggregator_configs/test"]
