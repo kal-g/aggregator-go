@@ -458,7 +458,7 @@ func (zkm *ZkManager) ingestConfigsToZK(configFiles []string) {
 		ns := doc["namespace"].(string)
 		logger.Info().Msgf("Ingesting config for ns %v into ZK", ns)
 		// If exists, set, otherwise, create
-		data, stat, err := zkm.c.Get("/configs/" + ns)
+		_, stat, err := zkm.c.Get("/configs/" + ns)
 		if err != nil {
 			if errors.Is(err, zk.ErrNoNode) {
 				_, err := zkm.c.Create("/configs/"+ns, data, 0, zk.WorldACL(zk.PermAll))
