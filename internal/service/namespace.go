@@ -41,6 +41,7 @@ func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 	} else {
 		res.Data = meta
 	}
+	logger.Debug().Msgf("Namespace get info return: %+v", res)
 	data, _ := json.Marshal(res)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)

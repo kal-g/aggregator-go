@@ -1,9 +1,14 @@
 package service
 
 import (
+	"os"
+
 	agg "github.com/kal-g/aggregator-go/internal/aggregator"
 	"github.com/kal-g/aggregator-go/internal/zk"
+	"github.com/rs/zerolog"
 )
+
+var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "SVC").Logger()
 
 // Service contains the complete running aggregator service
 type Service struct {
