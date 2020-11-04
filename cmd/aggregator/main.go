@@ -21,6 +21,7 @@ const (
 	consumeURL          = "/consume"
 	countURL            = "/count"
 	namespaceGetInfoURL = "/namespace/get_info"
+	debugSetLogLevel    = "/debug/set_log_level"
 )
 
 type configEnv struct {
@@ -30,7 +31,7 @@ type configEnv struct {
 	ZkURL    string `env:"ZOOKEEPER_URL"`
 }
 
-var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "SVC").Logger()
+var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "MAIN").Logger()
 
 type configFlags []string
 
@@ -63,6 +64,7 @@ func main() {
 	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")
 	r.HandleFunc(countURL, svc.Count).Methods("GET", "POST")
 	r.HandleFunc(namespaceGetInfoURL, svc.NamespaceGetInfo).Methods("GET", "POST")
+	r.HandleFunc(debugSetLogLevel, svc.DebugSetLogLevel).Methods("GET", "POST")
 
 	// Create listener for signals
 	sigs := make(chan os.Signal, 1)
