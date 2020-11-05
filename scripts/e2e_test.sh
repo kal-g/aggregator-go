@@ -22,14 +22,14 @@ done
 
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
 echo "Namespace count was" $namespaceCount
-if [ $namespaceCount != "{\"Err\":null,\"Count\":10000}" ]
+if [ $namespaceCount != '{"Err":null,"Count":10000}' ]
 then
   end
 fi
 
 namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
 echo "Namespace info was" $namespaceInfo
-if [ $namespaceInfo != '{"error":null,"data":{"metric_keys":{"1":1}}}' ]
+if [ $namespaceInfo != '{"error":"","data":{"metric_keys":{"1":1}}}' ]
 then
   end
 fi
