@@ -13,6 +13,65 @@ type NamespaceGetInfoResult struct {
 	Data agg.NamespaceMetadata `json:"data"`
 }
 
+type NamespaceSetResult struct {
+	Err string `json:"error"`
+}
+
+func (s *Service) NamespaceSet(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	bodyJSON := map[string]interface{}{}
+	json.Unmarshal(body, &bodyJSON)
+
+	overwriteIfExists := false
+	namespaceConfig := map[string]interface{}{}
+
+	if oie, oieSet := bodyJSON["overwriteIfExists"]; oieSet {
+		oieBool, isBool := oie.(bool)
+		if !isBool {
+			// TODO Error
+			panic("Type error in set namespace oie")
+		}
+		overwriteIfExists = oieBool
+	}
+
+	if nsCfg, nsCfgSet := bodyJSON["namespaceConfig"]; nsCfgSet {
+		nsCfgJSON, isJSON := nsCfg.(map[string]interface{})
+		if !isJSON {
+			// TODO Error
+			panic("Type error in set namespace nsCfg")
+		}
+		namespaceConfig = nsCfgJSON
+	}
+
+	res := NamespaceSetResult{}
+	// Extract namespace
+	ns := namespaceConfig["namespace"].(string)
+
+	if !overwriteIfExists {
+		if _, exists := s.e.Nsm.EventConfigsByNamespace[ns]; exists {
+			err := &agg.NamespaceExistsError{}
+			res.Err = err.Error()
+			data, _ := json.Marshal(res)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(data)
+			return
+		}
+	}
+	// Add JSON
+	cfgData, _ := json.Marshal(namespaceConfig)
+	s.e.Nsm.SetNamespaceFromData(cfgData)
+	data, _ := json.Marshal(res)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+	return
+}
+
+func (s *Service) NamespaceDelete(w http.ResponseWriter, r *http.Request) {
+}
+
 func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -25,7 +84,8 @@ func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 	if n, namespaceSet := bodyJSON["namespace"]; namespaceSet {
 		nString, isString := n.(string)
 		if !isString {
-			// TODO Return error
+			// TODO error
+			panic("Type error in get namespace")
 		}
 		namespace = nString
 	}

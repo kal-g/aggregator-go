@@ -41,6 +41,14 @@ func NewNSM(storage AbstractStorage, singleNodeMode bool) NamespaceManager {
 	return nsm
 }
 
+func (nsm *NamespaceManager) ClearNamespaceData() {
+	nsm.NsDataLck.Lock()
+	nsm.EventToMetricMap = map[string]map[int][]*metricConfig{}
+	nsm.EventConfigsByNamespace = map[string]map[int]*eventConfig{}
+	nsm.MetricConfigsByNamespace = map[string]map[int]*metricConfig{}
+	nsm.NsDataLck.Unlock()
+}
+
 func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
 	var doc map[string]interface{}
 	json.Unmarshal(data, &doc)
@@ -54,6 +62,14 @@ func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
 	mcs := extractMetricConfigs(doc, nsm.storage)
 
 	nsm.SetNamespaceFromConfig(ns, ecs, mcs)
+
+	// Reset metadata if it exists
+	if _, exists := nsm.ActiveNamespaces[ns]; exists {
+		for _, mc := range nsm.MetricConfigsByNamespace[ns] {
+			nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
+		}
+	}
+
 }
 
 func (nsm *NamespaceManager) SetNamespaceFromConfig(ns string, ecs map[int]*eventConfig, mcs map[int]*metricConfig) {
@@ -100,7 +116,6 @@ func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 	for _, mc := range nsm.MetricConfigsByNamespace[ns] {
 		// TODO init with old values
 		nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
-
 	}
 	nsm.NsDataLck.Unlock()
 }

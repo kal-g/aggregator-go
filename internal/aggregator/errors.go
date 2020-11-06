@@ -40,6 +40,12 @@ func (e *NoMetricsFoundError) Error() string {
 
 // Other errors
 
+type NamespaceExistsError struct{}
+
+func (e *NamespaceExistsError) Error() string {
+	return "Namespace exists"
+}
+
 type NamespaceNotFoundError struct{}
 
 func (e *NamespaceNotFoundError) Error() string {

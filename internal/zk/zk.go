@@ -484,6 +484,8 @@ func (zkm *ZkManager) watchConfigs() {
 			panic(err)
 		}
 		logger.Info().Msgf("Setting configs %+v", configs)
+		// TODO Get all namespaces
+		// TODO Clear namespace data
 		for _, ns := range configs {
 			data, _, err := zkm.c.Get("/configs/" + ns)
 			if err != nil {
@@ -491,6 +493,7 @@ func (zkm *ZkManager) watchConfigs() {
 			}
 			zkm.nsm.SetNamespaceFromData(data)
 		}
+		// TODO find namespaces that were deleted and deactivate them
 		e := <-watchChan
 		if e.Type != zk.EventNodeChildrenChanged {
 			panic(fmt.Sprintf("ZK - Unexpected event in watchConfigs -  %s (%d)", e.Type.String(), e.Type))

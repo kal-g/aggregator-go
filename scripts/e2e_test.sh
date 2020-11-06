@@ -14,10 +14,13 @@ for run in {1..10}
 do
   ./bin/test_client 1000 &>bin/client_logs/$run &
   pids[${run}]=$!
+  echo "Starting run ${run}"
 done
 
 for pid in ${pids[*]}; do
+    echo "Waiting on pid $pid"
     wait $pid
+    echo "Done waiting on $pid"
 done
 
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
@@ -30,6 +33,38 @@ fi
 namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
 echo "Namespace info was" $namespaceInfo
 if [ $namespaceInfo != '{"error":"","data":{"metric_keys":{"1":1}}}' ]
+then
+  end
+fi
+
+# 
+testConfig=`cat config/aggregator_configs/test`
+namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${testConfig}}' http://localhost:50051/namespace/set"
+namespaceSet=$(eval $namespaceSetCmd)
+echo "Namespace set was" $namespaceSet
+if [ $namespaceSet != '{"error":"Namespace exists"}' ]
+then
+  end
+fi
+
+namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
+echo "Namespace info was" $namespaceInfo
+if [ $namespaceInfo != '{"error":"","data":{"metric_keys":{"1":1}}}' ]
+then
+  end
+fi
+
+namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${testConfig}, \"overwriteIfExists\":true}' http://localhost:50051/namespace/set"
+namespaceSet=$(eval $namespaceSetCmd)
+echo "Namespace set was" $namespaceSet
+if [ $namespaceSet != '{"error":""}' ]
+then
+  end
+fi
+
+namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
+echo "Namespace info was" $namespaceInfo
+if [ $namespaceInfo != '{"error":"","data":{"metric_keys":{"1":0}}}' ]
 then
   end
 fi
