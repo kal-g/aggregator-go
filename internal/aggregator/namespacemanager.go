@@ -24,7 +24,10 @@ type NamespaceManager struct {
 	SingleNodeMode           bool
 }
 
-var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "NSM").Logger()
+var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().
+	Str("source", "NSM").
+	Timestamp().
+	Logger()
 
 // NSMFromRaw creates a namespace manager from a byte stream
 func NewNSM(storage AbstractStorage, singleNodeMode bool) NamespaceManager {

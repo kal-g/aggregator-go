@@ -41,7 +41,10 @@ type NamespaceToNodeData struct {
 	Node string
 }
 
-var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "ZK").Logger()
+var logger zerolog.Logger = zerolog.New(os.Stderr).With().
+	Str("source", "ZK").
+	Timestamp().
+	Logger()
 
 // ZkLogger implements logging interface for go-zookeeper package
 type ZkLogger struct{}
@@ -54,7 +57,6 @@ func (l ZkLogger) Printf(fmt string, args ...interface{}) {
 // MakeNewZkManager inits and connects to zk
 // If no url given, sets local only mode
 func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, configFiles []string) *ZkManager {
-	logger := zerolog.New(os.Stderr).With().Str("source", "ZK").Logger()
 
 	if zkURL == "" {
 		logger.Info().Msgf("Local only mode")
