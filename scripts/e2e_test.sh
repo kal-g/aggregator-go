@@ -9,9 +9,8 @@ export REDIS_URL="localhost:6379"
 ./bin/aggregator --config "config/aggregator_configs/global" --config "config/aggregator_configs/test" &>bin/writer_logs &
 aggPid=$!
 trap end EXIT
-echo "Starting test"
-
 sleep 0.1
+echo "Starting test"
 
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
 echo "Initial Namespace count was" $namespaceCount
@@ -20,7 +19,6 @@ then
   end
   exit 1
 fi
-
 
 mkdir -p bin/client_logs
 for run in {1..10}
@@ -52,12 +50,11 @@ then
   exit 1
 fi
 
-# 
 testConfig=`cat config/aggregator_configs/test`
 namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${testConfig}}' http://localhost:50051/namespace/set"
 namespaceSet=$(eval $namespaceSetCmd)
 echo "Namespace set was" $namespaceSet
-if [ $namespaceSet != '{"error":"Namespace exists"}' ]
+if [ "$namespaceSet" != '{"error":"Namespace exists"}' ]
 then
   end
   exit 1
