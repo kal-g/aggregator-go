@@ -6,7 +6,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "ENG").Logger()
+var logger zerolog.Logger = zerolog.New(os.Stderr).With().
+	Str("source", "ENG").
+	Timestamp().
+	Logger()
 
 // Engine is the core calculcation engine for counting
 type Engine struct {

@@ -8,7 +8,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var logger zerolog.Logger = zerolog.New(os.Stderr).With().Str("source", "SVC").Logger()
+var logger zerolog.Logger = zerolog.New(os.Stderr).With().
+	Str("source", "SVC").
+	Timestamp().
+	Logger()
 
 // Service contains the complete running aggregator service
 type Service struct {
