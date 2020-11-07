@@ -434,57 +434,75 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 	}
 }
 
+func (zkm *ZkManager) IngestConfigToZK(data []byte) {
+	// Extract namespace
+	var doc map[string]interface{}
+	json.Unmarshal(data, &doc)
+	ns := doc["namespace"].(string)
+	logger.Info().Msgf("Ingesting config for ns %v into ZK", ns)
+	// If exists, set, otherwise, create
+	_, stat, err := zkm.c.Get("/configs/" + ns)
+	if err != nil {
+		if errors.Is(err, zk.ErrNoNode) {
+			_, err := zkm.c.Create("/configs/"+ns, data, 0, zk.WorldACL(zk.PermAll))
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			panic(err)
+		}
+	} else {
+		logger.Info().Msgf("Doing set %s", string(data))
+		_, err := zkm.c.Set("/configs/"+ns, data, stat.Version)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (zkm *ZkManager) ingestConfigsToZK(configFiles []string) {
 	for _, c := range configFiles {
 		data, err := ioutil.ReadFile(c)
 		if err != nil {
 			log.Fatal().Err(err)
 		}
-		// Extract namespace
-		var doc map[string]interface{}
-		json.Unmarshal(data, &doc)
-		ns := doc["namespace"].(string)
-		logger.Info().Msgf("Ingesting config for ns %v into ZK", ns)
-		// If exists, set, otherwise, create
-		_, stat, err := zkm.c.Get("/configs/" + ns)
-		if err != nil {
-			if errors.Is(err, zk.ErrNoNode) {
-				_, err := zkm.c.Create("/configs/"+ns, data, 0, zk.WorldACL(zk.PermAll))
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				panic(err)
-			}
-		} else {
-			_, err := zkm.c.Set("/configs/"+ns, data, stat.Version)
-			if err != nil {
-				panic(err)
-			}
+		zkm.IngestConfigToZK(data)
+	}
+}
+
+func mergeChans(signal <-chan bool, in <-chan zk.Event, out chan<- zk.Event) {
+	for {
+		select {
+		case e := <-in:
+			out <- e
+		case <-signal:
+			return
 		}
 	}
 }
 
 func (zkm *ZkManager) watchConfigs() {
+	signalChan := make(chan bool)
 	for {
-		configs, _, watchChan, err := zkm.c.ChildrenW("/configs")
+		// Create new chans
+		configs, _, parentChan, err := zkm.c.ChildrenW("/configs")
+		watchChan := make(chan zk.Event)
+		go mergeChans(signalChan, parentChan, watchChan)
 		if err != nil {
 			panic(err)
 		}
 		logger.Info().Msgf("Setting configs %+v", configs)
-		// TODO Get all namespaces
-		// TODO Clear namespace data
 		for _, ns := range configs {
-			data, _, err := zkm.c.Get("/configs/" + ns)
+			data, _, nodeChan, err := zkm.c.GetW("/configs/" + ns)
 			if err != nil {
 				panic(err)
 			}
 			zkm.nsm.SetNamespaceFromData(data)
+			go mergeChans(signalChan, nodeChan, watchChan)
 		}
 		// TODO find namespaces that were deleted and deactivate them
-		e := <-watchChan
-		if e.Type != zk.EventNodeChildrenChanged {
-			panic(fmt.Sprintf("ZK - Unexpected event in watchConfigs -  %s (%d)", e.Type.String(), e.Type))
-		}
+		<-watchChan
+		// kill all the other channels waiting
+		signalChan <- true
 	}
 }

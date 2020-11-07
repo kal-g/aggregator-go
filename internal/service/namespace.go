@@ -62,7 +62,8 @@ func (s *Service) NamespaceSet(w http.ResponseWriter, r *http.Request) {
 	}
 	// Add JSON
 	cfgData, _ := json.Marshal(namespaceConfig)
-	s.e.Nsm.SetNamespaceFromData(cfgData)
+	logger.Info().Msgf("Ingesting config %s", ns)
+	s.Zkm.IngestConfigToZK(cfgData)
 	data, _ := json.Marshal(res)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
