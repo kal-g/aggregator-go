@@ -1,15 +1,18 @@
 #! /bin/bash
 set -e
 function end {
+  set +e
   pkill -f aggregator
+  pkill -f test_client
   wait $aggPid
 }
 
 export REDIS_URL="localhost:6379"
+export ZOOKEEPER_URL="localhost:2181"
 ./bin/aggregator --config "config/aggregator_configs/global" --config "config/aggregator_configs/test" &>bin/writer_logs &
 aggPid=$!
 trap end EXIT
-sleep 0.1
+sleep 1
 echo "Starting test"
 
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
@@ -85,5 +88,4 @@ then
   exit 1
 fi
 
-pkill -f aggregator
 echo "Test passed"

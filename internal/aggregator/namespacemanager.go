@@ -21,7 +21,6 @@ type NamespaceManager struct {
 	NsDataLck                *sync.RWMutex
 	EventToMetricMap         map[string]map[int][]*metricConfig
 	ActiveNamespaces         map[string]NamespaceMetadata
-	SingleNodeMode           bool
 }
 
 var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().
@@ -30,7 +29,7 @@ var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().
 	Logger()
 
 // NSMFromRaw creates a namespace manager from a byte stream
-func NewNSM(storage AbstractStorage, singleNodeMode bool) NamespaceManager {
+func NewNSM(storage AbstractStorage) NamespaceManager {
 
 	nsm := NamespaceManager{
 		EventConfigsByNamespace:  map[string]map[int]*eventConfig{},
@@ -39,7 +38,6 @@ func NewNSM(storage AbstractStorage, singleNodeMode bool) NamespaceManager {
 		NsDataLck:                &sync.RWMutex{},
 		EventToMetricMap:         map[string]map[int][]*metricConfig{},
 		ActiveNamespaces:         map[string]NamespaceMetadata{},
-		SingleNodeMode:           singleNodeMode,
 	}
 	return nsm
 }
@@ -98,10 +96,6 @@ func (nsm *NamespaceManager) SetNamespaceFromConfig(ns string, ecs map[int]*even
 	// Set map from metric ID to metric
 	nsm.MetricConfigsByNamespace[ns] = mcs
 	nsm.NsDataLck.Unlock()
-
-	if nsm.SingleNodeMode {
-		nsm.ActivateNamespace(ns)
-	}
 }
 
 func (nsm *NamespaceManager) ActivateNamespace(ns string) {

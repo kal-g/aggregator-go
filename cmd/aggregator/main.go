@@ -29,7 +29,7 @@ type configEnv struct {
 	Port     int    `env:"PORT_NUMBER" envDefault:"50051"`
 	NodeName string `env:"NODE_NAME,required"`
 	RedisURL string `env:"REDIS_URL,required"`
-	ZkURL    string `env:"ZOOKEEPER_URL"`
+	ZkURL    string `env:"ZOOKEEPER_URL,required"`
 }
 
 var logger zerolog.Logger = zerolog.New(os.Stderr).With().
