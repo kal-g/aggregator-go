@@ -22,9 +22,9 @@ e2e_test: all
 	@NODE_NAME=agg ./scripts/e2e_test.sh
 
 benchmark: all
-	@./scripts/benchmark.sh 1
+	@NODE_NAME=agg ./scripts/benchmark.sh 1
 	@sleep 5
-	@./scripts/benchmark.sh 3
+	@NODE_NAME=agg ./scripts/benchmark.sh 3
 
 start_redis:
 	-docker rm -f redis

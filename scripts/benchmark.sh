@@ -2,8 +2,8 @@
 set -e
 
 export REDIS_URL="localhost:6379"
+export ZOOKEEPER_URL="localhost:2181"
 ./bin/aggregator --config "config/aggregator_configs/global" --config "config/aggregator_configs/test" &>bin/writer_logs &
-
 sleep 5
 mkdir -p bin/client_logs
 
