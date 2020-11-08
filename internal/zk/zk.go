@@ -452,7 +452,6 @@ func (zkm *ZkManager) IngestConfigToZK(data []byte) {
 			panic(err)
 		}
 	} else {
-		logger.Info().Msgf("Doing set %s", string(data))
 		_, err := zkm.c.Set("/configs/"+ns, data, stat.Version)
 		if err != nil {
 			panic(err)
