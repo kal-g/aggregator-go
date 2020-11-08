@@ -19,15 +19,17 @@ import (
 const (
 	consumeURL          = "/consume"
 	countURL            = "/count"
+	debugSetLogLevelURL = "/debug/set_log_level"
 	namespaceGetInfoURL = "/namespace/get_info"
-	debugSetLogLevel    = "/debug/set_log_level"
+	namespaceSetURL     = "/namespace/set"
+	namespaceDeleteURL  = "/namespace/delete"
 )
 
 type configEnv struct {
 	Port     int    `env:"PORT_NUMBER" envDefault:"50051"`
 	NodeName string `env:"NODE_NAME,required"`
 	RedisURL string `env:"REDIS_URL,required"`
-	ZkURL    string `env:"ZOOKEEPER_URL"`
+	ZkURL    string `env:"ZOOKEEPER_URL,required"`
 }
 
 var logger zerolog.Logger = zerolog.New(os.Stderr).With().
@@ -62,11 +64,7 @@ func main() {
 
 	svc := service.MakeNewService(cfg.RedisURL, cfg.ZkURL, cfg.NodeName, configFiles)
 
-	r := mux.NewRouter()
-	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")
-	r.HandleFunc(countURL, svc.Count).Methods("GET", "POST")
-	r.HandleFunc(namespaceGetInfoURL, svc.NamespaceGetInfo).Methods("GET", "POST")
-	r.HandleFunc(debugSetLogLevel, svc.DebugSetLogLevel).Methods("GET", "POST")
+	r := getRouter(&svc)
 
 	// Create listener for signals
 	sigs := make(chan os.Signal, 1)
@@ -93,4 +91,15 @@ func main() {
 		logger.Err(err).Msg("There was a problem trying to shutdown the server.")
 	}
 	logger.Info().Msg("The server has been shutdown.")
+}
+
+func getRouter(svc *service.Service) *mux.Router {
+	r := mux.NewRouter()
+	r.HandleFunc(consumeURL, svc.Consume).Methods("GET", "POST")
+	r.HandleFunc(countURL, svc.Count).Methods("GET", "POST")
+	r.HandleFunc(debugSetLogLevelURL, svc.DebugSetLogLevel).Methods("GET", "POST")
+	r.HandleFunc(namespaceGetInfoURL, svc.NamespaceGetInfo).Methods("GET", "POST")
+	r.HandleFunc(namespaceSetURL, svc.NamespaceSet).Methods("GET", "POST")
+	r.HandleFunc(namespaceDeleteURL, svc.NamespaceDelete).Methods("GET", "POST")
+	return r
 }

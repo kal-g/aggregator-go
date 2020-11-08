@@ -45,7 +45,7 @@ func main() {
 		for i := 0; i < count; i++ {
 			req, _ := http.NewRequest("POST", url, bytes.NewBuffer(bodyData))
 			resp, err := client.Do(req)
-			fmt.Printf("%+v, %+v\n", resp, err)
+			fmt.Printf("%d: %+v, %+v\n", i, resp, err)
 			if err == nil {
 				if resp.StatusCode == 200 {
 					bytes, err := ioutil.ReadAll(resp.Body)

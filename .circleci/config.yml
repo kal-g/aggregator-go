@@ -69,11 +69,15 @@ jobs:
       - run:
           name: Start redis
           command: |
-            docker run --name redis -p 6379:6379 -d redis
+            docker run --name redis -d redis
+      - run:
+          name: Start zk
+          command: |
+            docker run --name zk -d --network container:redis zookeeper
       - run:
           name: Start test
           command: |
-            docker run --network container:redis -e NODE_NAME=agg -e REDIS_URL=redis:6379 $IMAGE_NAME:e2e
+            docker run --network container:redis -e NODE_NAME=agg -e REDIS_URL=localhost:6379 -e ZOOKEEPER_URL=localhost:2181 $IMAGE_NAME:e2e
 workflows:
   version: 2.1
   build-master:

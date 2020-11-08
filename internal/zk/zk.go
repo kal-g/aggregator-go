@@ -27,6 +27,7 @@ type ZkManager struct {
 	isLeader       bool
 	watchNodesChan <-chan zk.Event
 	nsm            *agg.NamespaceManager
+	nodeMap        map[string]bool
 }
 
 type AggNodeStatus struct {
@@ -57,26 +58,6 @@ func (l ZkLogger) Printf(fmt string, args ...interface{}) {
 // MakeNewZkManager inits and connects to zk
 // If no url given, sets local only mode
 func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, configFiles []string) *ZkManager {
-
-	if zkURL == "" {
-		logger.Info().Msgf("Local only mode")
-		for _, c := range configFiles {
-			data, err := ioutil.ReadFile(c)
-			if err != nil {
-				log.Fatal().Err(err)
-			}
-			logger.Info().Msgf("Using config locally: %+v", c)
-			nsm.SetNamespaceFromData(data)
-		}
-		return &ZkManager{
-			c:              nil,
-			localOnlyMode:  true,
-			nodeName:       nodeName,
-			isLeader:       false,
-			watchNodesChan: nil,
-			nsm:            nsm,
-		}
-	}
 	l := ZkLogger{}
 	opt := zk.WithLogger(l)
 	c, _, err := zk.Connect([]string{zkURL}, time.Second, opt)
@@ -92,11 +73,16 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, 
 		isLeader:       false,
 		watchNodesChan: nil,
 		nsm:            nsm,
+		nodeMap:        map[string]bool{},
 	}
 	zkm.Setup()
 	zkm.LeaderElection()
-	zkm.ingestConfigsToZK(configFiles)
 	go zkm.watchConfigs()
+	logger.Info().Msgf("config files %s", configFiles)
+	zkm.ingestConfigsToZK(configFiles)
+	// TODO Wait for watch nodes init
+	time.Sleep(2 * time.Second)
+	zkm.DistributeNamespaces()
 	return zkm
 }
 
@@ -166,10 +152,11 @@ func (zkm ZkManager) Setup() {
 
 }
 
-func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
-	if len(children) == 1 {
-		logger.Info().Msgf("Only master, no namespaces distributed")
-		return
+func (zkm *ZkManager) DistributeNamespaces() {
+	masterOnly := false
+	if len(zkm.nodeMap) == 1 {
+		logger.Info().Msgf("Master only mode")
+		masterOnly = true
 	}
 	// Get distributed namespaces
 	distributedNs := map[string]string{}
@@ -197,7 +184,7 @@ func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
 
 	// For each node in map that no longer exists, redistribute all namespaces, and delete entry
 	for node, namespaces := range nsmap.Map {
-		if _, exists := children[node]; !exists {
+		if _, exists := zkm.nodeMap[node]; !exists {
 			logger.Info().Msgf("Node %s was removed, redistributing namespaces: %v", node, namespaces)
 
 			for ns := range namespaces {
@@ -228,8 +215,8 @@ func (zkm *ZkManager) DistributeNamespaces(children map[string]bool) {
 	// Keep track of changes
 	newlyDistributedNamespaces := map[string]string{}
 	// Find first non master node
-	for c := range children {
-		if zkm.nodeName != c {
+	for c := range zkm.nodeMap {
+		if masterOnly || zkm.nodeName != c {
 			// Put all non distributed namespaces into map for first non master node
 			// TODO Distribute the namespaces evenly
 			logger.Info().Msgf("Non distributed NS: %s", nonDistributedNs)
@@ -358,7 +345,8 @@ func (zkm *ZkManager) watchNodes() {
 		for _, c := range children {
 			childrenMap[c] = true
 		}
-		zkm.DistributeNamespaces(childrenMap)
+		zkm.nodeMap = childrenMap
+		zkm.DistributeNamespaces()
 		e := <-zkm.watchNodesChan
 		if !zkm.isLeader {
 			logger.Info().Msgf("Detected change in agg nodes, but no longer leader")
@@ -448,54 +436,81 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 	}
 }
 
+func (zkm *ZkManager) IngestConfigToZK(data []byte) {
+	// Extract namespace
+	var doc map[string]interface{}
+	json.Unmarshal(data, &doc)
+	ns := doc["namespace"].(string)
+	logger.Info().Msgf("Ingesting config for ns %v into ZK", ns)
+	// If exists, set, otherwise, create
+	_, stat, err := zkm.c.Get("/configs/" + ns)
+	if err != nil {
+		if errors.Is(err, zk.ErrNoNode) {
+			_, err := zkm.c.Create("/configs/"+ns, data, 0, zk.WorldACL(zk.PermAll))
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			panic(err)
+		}
+	} else {
+		_, err := zkm.c.Set("/configs/"+ns, data, stat.Version)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (zkm *ZkManager) ingestConfigsToZK(configFiles []string) {
 	for _, c := range configFiles {
+		// TODO Check here
+		logger.Info().Msgf("Ingesting file %s", c)
 		data, err := ioutil.ReadFile(c)
 		if err != nil {
 			log.Fatal().Err(err)
 		}
-		// Extract namespace
-		var doc map[string]interface{}
-		json.Unmarshal(data, &doc)
-		ns := doc["namespace"].(string)
-		logger.Info().Msgf("Ingesting config for ns %v into ZK", ns)
-		// If exists, set, otherwise, create
-		_, stat, err := zkm.c.Get("/configs/" + ns)
-		if err != nil {
-			if errors.Is(err, zk.ErrNoNode) {
-				_, err := zkm.c.Create("/configs/"+ns, data, 0, zk.WorldACL(zk.PermAll))
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				panic(err)
-			}
-		} else {
-			_, err := zkm.c.Set("/configs/"+ns, data, stat.Version)
-			if err != nil {
-				panic(err)
-			}
+		zkm.IngestConfigToZK(data)
+	}
+}
+
+func mergeChans(signal <-chan bool, in <-chan zk.Event, out chan<- zk.Event) {
+	for {
+		select {
+		case e := <-in:
+			out <- e
+		case <-signal:
+			return
 		}
 	}
 }
 
 func (zkm *ZkManager) watchConfigs() {
+	signalChan := make(chan bool)
 	for {
-		configs, _, watchChan, err := zkm.c.ChildrenW("/configs")
+		// Create new chans
+		configs, _, parentChan, err := zkm.c.ChildrenW("/configs")
+		watchChan := make(chan zk.Event)
+		go mergeChans(signalChan, parentChan, watchChan)
 		if err != nil {
 			panic(err)
 		}
 		logger.Info().Msgf("Setting configs %+v", configs)
 		for _, ns := range configs {
-			data, _, err := zkm.c.Get("/configs/" + ns)
+			data, _, nodeChan, err := zkm.c.GetW("/configs/" + ns)
 			if err != nil {
 				panic(err)
 			}
 			zkm.nsm.SetNamespaceFromData(data)
+			go mergeChans(signalChan, nodeChan, watchChan)
 		}
-		e := <-watchChan
-		if e.Type != zk.EventNodeChildrenChanged {
-			panic(fmt.Sprintf("ZK - Unexpected event in watchConfigs -  %s (%d)", e.Type.String(), e.Type))
+		// TODO find namespaces that were deleted and deactivate them
+		logger.Info().Msgf("Watching configs")
+		<-watchChan
+		logger.Info().Msgf("Config change")
+		// kill all the other channels waiting
+		if len(configs) > 0 {
+			signalChan <- true
 		}
+		logger.Info().Msgf("Hmm?")
 	}
 }

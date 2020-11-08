@@ -16,7 +16,7 @@ var logger zerolog.Logger = zerolog.New(os.Stderr).With().
 // Service contains the complete running aggregator service
 type Service struct {
 	e        agg.Engine
-	zkm      *zk.ZkManager
+	Zkm      *zk.ZkManager
 	nodeName string
 	Nsm      *agg.NamespaceManager
 }
@@ -24,12 +24,12 @@ type Service struct {
 // MakeNewService creates and initializes the aggregator service
 func MakeNewService(redisURL string, zkURL string, nodeName string, configFiles []string) Service {
 	storage := agg.NewRedisStorage(redisURL)
-	nsm := agg.NewNSM(storage, zkURL == "")
+	nsm := agg.NewNSM(storage)
 	engine := agg.NewEngine(&nsm)
 	zkm := zk.MakeNewZkManager(zkURL, nodeName, &nsm, configFiles)
 	svc := Service{
 		e:        engine,
-		zkm:      zkm,
+		Zkm:      zkm,
 		nodeName: nodeName,
 		Nsm:      &nsm,
 	}

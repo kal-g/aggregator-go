@@ -23,14 +23,15 @@ e2e_test: all
 
 benchmark: all
 	@./scripts/benchmark.sh 1
+	@sleep 5
 	@./scripts/benchmark.sh 3
 
 start_redis:
-	-docker rm redis
+	-docker rm -f redis
 	-docker run -p 6379:6379 -d --network=agg --name redis redis 2>/dev/null
 
 start_zk:
-	-docker rm zk
+	-docker rm -f zk
 	-docker run -p 2181:2181 -d --network=agg --name zk zookeeper 2>/dev/null
 
 start_net:

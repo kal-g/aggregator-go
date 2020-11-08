@@ -21,7 +21,6 @@ type NamespaceManager struct {
 	NsDataLck                *sync.RWMutex
 	EventToMetricMap         map[string]map[int][]*metricConfig
 	ActiveNamespaces         map[string]NamespaceMetadata
-	SingleNodeMode           bool
 }
 
 var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().
@@ -30,7 +29,7 @@ var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().
 	Logger()
 
 // NSMFromRaw creates a namespace manager from a byte stream
-func NewNSM(storage AbstractStorage, singleNodeMode bool) NamespaceManager {
+func NewNSM(storage AbstractStorage) NamespaceManager {
 
 	nsm := NamespaceManager{
 		EventConfigsByNamespace:  map[string]map[int]*eventConfig{},
@@ -39,9 +38,16 @@ func NewNSM(storage AbstractStorage, singleNodeMode bool) NamespaceManager {
 		NsDataLck:                &sync.RWMutex{},
 		EventToMetricMap:         map[string]map[int][]*metricConfig{},
 		ActiveNamespaces:         map[string]NamespaceMetadata{},
-		SingleNodeMode:           singleNodeMode,
 	}
 	return nsm
+}
+
+func (nsm *NamespaceManager) ClearNamespaceData() {
+	nsm.NsDataLck.Lock()
+	nsm.EventToMetricMap = map[string]map[int][]*metricConfig{}
+	nsm.EventConfigsByNamespace = map[string]map[int]*eventConfig{}
+	nsm.MetricConfigsByNamespace = map[string]map[int]*metricConfig{}
+	nsm.NsDataLck.Unlock()
 }
 
 func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
@@ -57,6 +63,14 @@ func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
 	mcs := extractMetricConfigs(doc, nsm.storage)
 
 	nsm.SetNamespaceFromConfig(ns, ecs, mcs)
+
+	// Reset metadata if it exists
+	if _, exists := nsm.ActiveNamespaces[ns]; exists {
+		for _, mc := range nsm.MetricConfigsByNamespace[ns] {
+			nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
+		}
+	}
+
 }
 
 func (nsm *NamespaceManager) SetNamespaceFromConfig(ns string, ecs map[int]*eventConfig, mcs map[int]*metricConfig) {
@@ -82,10 +96,6 @@ func (nsm *NamespaceManager) SetNamespaceFromConfig(ns string, ecs map[int]*even
 	// Set map from metric ID to metric
 	nsm.MetricConfigsByNamespace[ns] = mcs
 	nsm.NsDataLck.Unlock()
-
-	if nsm.SingleNodeMode {
-		nsm.ActivateNamespace(ns)
-	}
 }
 
 func (nsm *NamespaceManager) ActivateNamespace(ns string) {
@@ -103,7 +113,6 @@ func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 	for _, mc := range nsm.MetricConfigsByNamespace[ns] {
 		// TODO init with old values
 		nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
-
 	}
 	nsm.NsDataLck.Unlock()
 }
