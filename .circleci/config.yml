@@ -67,9 +67,13 @@ jobs:
           command: |
             docker load -i /tmp/workspace/e2e.tar
       - run:
+          name: Create network
+          command: |
+            docker network create agg
+      - run:
           name: Start redis
           command: |
-            docker run --name redis -p 6379:6379 -d redis
+            docker run --name redis -p 6379:6379 -d --network=agg redis
       - run:
           name: Start zk
           command: |
@@ -77,7 +81,7 @@ jobs:
       - run:
           name: Start test
           command: |
-            docker run --network container:redis -e NODE_NAME=agg -e REDIS_URL=redis:6379 $IMAGE_NAME:e2e
+            docker run --network=agg -e NODE_NAME=agg -e REDIS_URL=redis:6379 $IMAGE_NAME:e2e
 workflows:
   version: 2.1
   build-master:
