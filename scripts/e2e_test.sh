@@ -9,10 +9,10 @@ function end {
 
 export REDIS_URL="localhost:6379"
 export ZOOKEEPER_URL="localhost:2181"
-./bin/aggregator --config "config/aggregator_configs/global" --config "config/aggregator_configs/test" &
+./bin/aggregator --config "config/aggregator_configs/global" --config "config/aggregator_configs/test" &>bin/writer_logs &
 aggPid=$!
 trap end EXIT
-sleep 1
+sleep 5
 echo "Starting test"
 
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
