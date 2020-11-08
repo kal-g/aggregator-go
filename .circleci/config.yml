@@ -71,6 +71,10 @@ jobs:
           command: |
             docker run --name redis -p 6379:6379 -d redis
       - run:
+          name: Start zk
+          command: |
+            docker run --name zk -p 2181:2181 -d --network=agg zookeeper
+      - run:
           name: Start test
           command: |
             docker run --network container:redis -e NODE_NAME=agg -e REDIS_URL=redis:6379 $IMAGE_NAME:e2e
