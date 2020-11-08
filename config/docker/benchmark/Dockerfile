@@ -4,4 +4,4 @@ RUN apt-get update && apt-get install -y bc
 COPY aggregator-go aggregator-go
 WORKDIR aggregator-go
 
-ENTRYPOINT make e2e_test && make benchmark
+ENTRYPOINT NODE_NAME=agg ./scripts/e2e_test.sh && make benchmark
