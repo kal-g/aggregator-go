@@ -23,6 +23,7 @@ e2e_test: all
 
 benchmark: all
 	@./scripts/benchmark.sh 1
+	@sleep 5
 	@./scripts/benchmark.sh 3
 
 start_redis:
