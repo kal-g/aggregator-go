@@ -78,7 +78,6 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, 
 	zkm.Setup()
 	zkm.LeaderElection()
 	go zkm.watchConfigs()
-	logger.Info().Msgf("config files %s", configFiles)
 	zkm.ingestConfigsToZK(configFiles)
 	// TODO Wait for watch nodes init
 	time.Sleep(2 * time.Second)
@@ -155,7 +154,7 @@ func (zkm ZkManager) Setup() {
 func (zkm *ZkManager) DistributeNamespaces() {
 	masterOnly := false
 	if len(zkm.nodeMap) == 1 {
-		logger.Info().Msgf("Master only mode")
+		logger.Info().Msgf("Distributing namespaces to master")
 		masterOnly = true
 	}
 	// Get distributed namespaces
@@ -463,8 +462,6 @@ func (zkm *ZkManager) IngestConfigToZK(data []byte) {
 
 func (zkm *ZkManager) ingestConfigsToZK(configFiles []string) {
 	for _, c := range configFiles {
-		// TODO Check here
-		logger.Info().Msgf("Ingesting file %s", c)
 		data, err := ioutil.ReadFile(c)
 		if err != nil {
 			log.Fatal().Err(err)
