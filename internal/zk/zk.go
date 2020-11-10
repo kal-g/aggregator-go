@@ -483,6 +483,7 @@ func mergeChans(signal <-chan bool, in <-chan zk.Event, out chan<- zk.Event) {
 
 func (zkm *ZkManager) watchConfigs() {
 	signalChan := make(chan bool)
+	e := zk.Event{}
 	for {
 		// Create new chans
 		configs, _, parentChan, err := zkm.c.ChildrenW("/configs")
@@ -501,13 +502,11 @@ func (zkm *ZkManager) watchConfigs() {
 			go mergeChans(signalChan, nodeChan, watchChan)
 		}
 		// TODO find namespaces that were deleted and deactivate them
-		logger.Info().Msgf("Watching configs")
-		<-watchChan
-		logger.Info().Msgf("Config change")
+		e = <-watchChan
+		logger.Info().Msgf("Config change: %s", e.Type.String())
 		// kill all the other channels waiting
 		if len(configs) > 0 {
 			signalChan <- true
 		}
-		logger.Info().Msgf("Hmm?")
 	}
 }
