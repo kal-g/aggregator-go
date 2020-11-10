@@ -501,6 +501,10 @@ func (zkm *ZkManager) watchConfigs() {
 			zkm.nsm.SetNamespaceFromData(data)
 			go mergeChans(signalChan, nodeChan, watchChan)
 		}
+		// If new namespaces were added, we need to distribute them
+		if zkm.isLeader && e.Type == zk.EventNodeChildrenChanged {
+			zkm.DistributeNamespaces()
+		}
 		// TODO find namespaces that were deleted and deactivate them
 		e = <-watchChan
 		logger.Info().Msgf("Config change: %s", e.Type.String())
