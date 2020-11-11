@@ -290,7 +290,10 @@ func (zkm *ZkManager) LeaderElection() {
 		zkm.isLeader = true
 		// Unassign the nodes owned by this node, since it became leader
 		// They will be redistributed in watchNodes
-		zkm.unassignLeaderNamespaces()
+		if len(zkm.nodeMap) > 1 {
+			logger.Info().Msgf("Found children, unassigning namespaces from master")
+			zkm.unassignLeaderNamespaces()
+		}
 		// Setup watcher on namespace
 		go zkm.watchNamespace()
 		// Watch for new nodes
@@ -383,7 +386,11 @@ func (zkm *ZkManager) watchNamespace() {
 		nsmd := NodeToNamespaceMapData{}
 		json.Unmarshal(data, &nsmd)
 		// Get our current namespaces and compare with new ones to find ones to deactivate
-		nsToDeactivate := zkm.nsm.ActiveNamespaces
+		// TODO Deep copy
+		nsToDeactivate := map[string]bool{}
+		for ns := range zkm.nsm.ActiveNamespaces {
+			nsToDeactivate[ns] = true
+		}
 		for ns := range nsmd.Map[zkm.nodeName] {
 			zkm.nsm.ActivateNamespace(ns)
 			if _, exists := nsToDeactivate[ns]; exists {
@@ -443,8 +450,12 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
 		// Unassign the nodes owned by this node, since it became leader
-		// They will be redistributed in watchNodes
-		zkm.unassignLeaderNamespaces()
+		// They will be redistributed in watchNodes, only if there are other
+		// nodes
+		if len(zkm.nodeMap) > 1 {
+			logger.Info().Msgf("Found children, unassigning namespaces from master")
+			zkm.unassignLeaderNamespaces()
+		}
 		// Watch for new nodes
 		zkm.watchNodes()
 	} else {
