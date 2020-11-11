@@ -68,9 +68,7 @@ func (e Engine) handleEvent(event event, namespace string) error {
 	for _, metricConfig := range metricConfigs {
 		_, isNew := metricConfig.handleEvent(event, namespace)
 		if isNew {
-			e.Nsm.NsDataLck.RLock()
-			e.Nsm.ActiveNamespaces[namespace].KeySizeMap[metricConfig.ID]++
-			e.Nsm.NsDataLck.RUnlock()
+			e.Nsm.IncrementNumKeys(namespace, metricConfig.ID)
 		}
 	}
 	e.Nsm.namespaceRUnlock(namespace)

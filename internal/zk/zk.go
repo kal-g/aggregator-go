@@ -20,14 +20,15 @@ import (
 
 // ZkManager handles all zookeeper interaction
 type ZkManager struct {
-	c              *zk.Conn
-	localOnlyMode  bool
-	nodeName       string
-	currVote       string
-	isLeader       bool
-	watchNodesChan <-chan zk.Event
-	nsm            *agg.NamespaceManager
-	nodeMap        map[string]bool
+	c                  *zk.Conn
+	localOnlyMode      bool
+	nodeName           string
+	currVote           string
+	isLeader           bool
+	watchNodesChan     <-chan zk.Event
+	nsm                *agg.NamespaceManager
+	nodeMap            map[string]bool
+	updateMetadataChan <-chan string
 }
 
 type AggNodeStatus struct {
@@ -57,7 +58,7 @@ func (l ZkLogger) Printf(fmt string, args ...interface{}) {
 
 // MakeNewZkManager inits and connects to zk
 // If no url given, sets local only mode
-func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, configFiles []string) *ZkManager {
+func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, configFiles []string, updateMetadataChan <-chan string) *ZkManager {
 	l := ZkLogger{}
 	opt := zk.WithLogger(l)
 	c, _, err := zk.Connect([]string{zkURL}, time.Second, opt)
@@ -67,17 +68,20 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, 
 	}
 
 	zkm := &ZkManager{
-		c:              c,
-		localOnlyMode:  false,
-		nodeName:       nodeName,
-		isLeader:       false,
-		watchNodesChan: nil,
-		nsm:            nsm,
-		nodeMap:        map[string]bool{},
+		c:                  c,
+		localOnlyMode:      false,
+		nodeName:           nodeName,
+		isLeader:           false,
+		watchNodesChan:     nil,
+		nsm:                nsm,
+		nodeMap:            map[string]bool{},
+		updateMetadataChan: updateMetadataChan,
 	}
 	zkm.Setup()
 	zkm.LeaderElection()
 	go zkm.watchConfigs()
+	go zkm.metadataUpdater()
+	go zkm.watchMetadata()
 	zkm.ingestConfigsToZK(configFiles)
 	// TODO Wait for watch nodes init
 	time.Sleep(2 * time.Second)
@@ -98,6 +102,13 @@ func (zkm ZkManager) Setup() {
 
 	// Nodes directory
 	_, err = zkm.c.Create("/nodes", []byte{}, 0, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		if !errors.Is(err, zk.ErrNodeExists) {
+			panic(err)
+		}
+	}
+
+	_, err = zkm.c.Create("/namespaceMetadata", []byte{}, 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if !errors.Is(err, zk.ErrNodeExists) {
 			panic(err)
@@ -487,11 +498,11 @@ func (zkm *ZkManager) watchConfigs() {
 	for {
 		// Create new chans
 		configs, _, parentChan, err := zkm.c.ChildrenW("/configs")
-		watchChan := make(chan zk.Event)
-		go mergeChans(signalChan, parentChan, watchChan)
 		if err != nil {
 			panic(err)
 		}
+		watchChan := make(chan zk.Event)
+		go mergeChans(signalChan, parentChan, watchChan)
 		logger.Info().Msgf("Setting configs %+v", configs)
 		for _, ns := range configs {
 			data, _, nodeChan, err := zkm.c.GetW("/configs/" + ns)
@@ -512,5 +523,62 @@ func (zkm *ZkManager) watchConfigs() {
 		if len(configs) > 0 {
 			signalChan <- true
 		}
+	}
+}
+
+func (zkm *ZkManager) metadataUpdater() {
+	for {
+		ns := <-zkm.updateMetadataChan
+		nsMeta := zkm.nsm.NsMetadata[ns]
+		data, err := json.Marshal(nsMeta)
+		if err != nil {
+			panic(err)
+		}
+		_, stat, err := zkm.c.Get("/namespaceMetadata/" + ns)
+		if err != nil {
+			if !errors.Is(err, zk.ErrNoNode) {
+				panic(err)
+			}
+			_, err = zkm.c.Create("/namespaceMetadata/"+ns, data, 0, zk.WorldACL(zk.PermAll))
+			if err != nil {
+				panic(err)
+			}
+			continue
+		}
+		zkm.c.Set("/namespaceMetadata/"+ns, data, stat.Version)
+	}
+}
+
+func (zkm *ZkManager) watchMetadata() {
+	signalChan := make(chan bool)
+	e := zk.Event{}
+	for {
+		metadata, _, parentChan, err := zkm.c.ChildrenW("/namespaceMetadata")
+		if err != nil {
+			panic(err)
+		}
+		watchChan := make(chan zk.Event)
+		go mergeChans(signalChan, parentChan, watchChan)
+		logger.Info().Msgf("Setting metadata %+v", metadata)
+		for _, ns := range metadata {
+			data, _, nodeChan, err := zkm.c.GetW("/namespaceMetadata/" + ns)
+			if err != nil {
+				panic(err)
+			}
+			nsMeta := agg.NamespaceMetadata{}
+			err = json.Unmarshal(data, &nsMeta)
+			if err != nil {
+				panic(err)
+			}
+			zkm.nsm.NsMetadata[ns] = nsMeta
+			go mergeChans(signalChan, nodeChan, watchChan)
+		}
+		e = <-watchChan
+		logger.Info().Msgf("Metadata change: %s", e.Type.String())
+		// kill all the other channels waiting
+		if len(metadata) > 0 {
+			signalChan <- true
+		}
+
 	}
 }
