@@ -290,7 +290,10 @@ func (zkm *ZkManager) LeaderElection() {
 		zkm.isLeader = true
 		// Unassign the nodes owned by this node, since it became leader
 		// They will be redistributed in watchNodes
-		zkm.unassignLeaderNamespaces()
+		if len(zkm.nodeMap) > 1 {
+			logger.Info().Msgf("Found children, unassigning namespaces from master")
+			zkm.unassignLeaderNamespaces()
+		}
 		// Setup watcher on namespace
 		go zkm.watchNamespace()
 		// Watch for new nodes
@@ -382,9 +385,22 @@ func (zkm *ZkManager) watchNamespace() {
 		}
 		nsmd := NodeToNamespaceMapData{}
 		json.Unmarshal(data, &nsmd)
-		// TODO Find namespaces we lost and deactivate them
+		// Get our current namespaces and compare with new ones to find ones to deactivate
+		// TODO Deep copy
+		nsToDeactivate := map[string]bool{}
+		for ns := range zkm.nsm.ActiveNamespaces {
+			nsToDeactivate[ns] = true
+		}
 		for ns := range nsmd.Map[zkm.nodeName] {
 			zkm.nsm.ActivateNamespace(ns)
+			if _, exists := nsToDeactivate[ns]; exists {
+				delete(nsToDeactivate, ns)
+			}
+
+		}
+		for ns := range nsToDeactivate {
+			logger.Info().Msgf("Deactivating namespace %s", ns)
+			zkm.nsm.DeactivateNamespace(ns)
 		}
 		logger.Info().Msgf("Updated namespace map %+v", zkm.nsm.ActiveNamespaces)
 		e := <-nsmChan
@@ -434,8 +450,12 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 		logger.Info().Msgf("Became leader")
 		zkm.isLeader = true
 		// Unassign the nodes owned by this node, since it became leader
-		// They will be redistributed in watchNodes
-		zkm.unassignLeaderNamespaces()
+		// They will be redistributed in watchNodes, only if there are other
+		// nodes
+		if len(zkm.nodeMap) > 1 {
+			logger.Info().Msgf("Found children, unassigning namespaces from master")
+			zkm.unassignLeaderNamespaces()
+		}
 		// Watch for new nodes
 		zkm.watchNodes()
 	} else {
@@ -496,6 +516,11 @@ func (zkm *ZkManager) watchConfigs() {
 	signalChan := make(chan bool)
 	e := zk.Event{}
 	for {
+		// Get our existing configs to find configs to delete
+		configsToDelete := map[string]bool{}
+		for ns := range zkm.nsm.EventConfigsByNamespace {
+			configsToDelete[ns] = true
+		}
 		// Create new chans
 		configs, _, parentChan, err := zkm.c.ChildrenW("/configs")
 		if err != nil {
@@ -511,12 +536,23 @@ func (zkm *ZkManager) watchConfigs() {
 			}
 			zkm.nsm.SetNamespaceFromData(data)
 			go mergeChans(signalChan, nodeChan, watchChan)
+			if _, exists := configsToDelete[ns]; exists {
+				delete(configsToDelete, ns)
+			}
 		}
+		// Find namespaces that were deleted and deactivate them
+		for ns, _ := range configsToDelete {
+			delete(zkm.nsm.MetricConfigsByNamespace, ns)
+			delete(zkm.nsm.NsMetadata, ns)
+			delete(zkm.nsm.EventConfigsByNamespace, ns)
+			delete(zkm.nsm.MetricConfigsByNamespace, ns)
+			delete(zkm.nsm.EventToMetricMap, ns)
+		}
+
 		// If new namespaces were added, we need to distribute them
 		if zkm.isLeader && e.Type == zk.EventNodeChildrenChanged {
 			zkm.DistributeNamespaces()
 		}
-		// TODO find namespaces that were deleted and deactivate them
 		e = <-watchChan
 		logger.Info().Msgf("Config change: %s", e.Type.String())
 		// kill all the other channels waiting
@@ -553,6 +589,12 @@ func (zkm *ZkManager) watchMetadata() {
 	signalChan := make(chan bool)
 	e := zk.Event{}
 	for {
+		// Compare against existing metadata to find namespaces to delete
+		nsToDelete := map[string]bool{}
+		for ns, _ := range zkm.nsm.NsMetadata {
+			nsToDelete[ns] = true
+		}
+		// Get ZK metadata
 		metadata, _, parentChan, err := zkm.c.ChildrenW("/namespaceMetadata")
 		if err != nil {
 			panic(err)
@@ -572,13 +614,28 @@ func (zkm *ZkManager) watchMetadata() {
 			}
 			zkm.nsm.NsMetadata[ns] = nsMeta
 			go mergeChans(signalChan, nodeChan, watchChan)
+			if _, exists := nsToDelete[ns]; exists {
+				delete(nsToDelete, ns)
+			}
 		}
 		e = <-watchChan
 		logger.Info().Msgf("Metadata change: %s", e.Type.String())
-		// kill all the other channels waiting
+		// Kill all the other channels waiting
 		if len(metadata) > 0 {
 			signalChan <- true
 		}
-
+		// Cleanup deleted metadata
+		for ns := range nsToDelete {
+			delete(zkm.nsm.NsMetadata, ns)
+		}
 	}
+}
+
+func (zkm *ZkManager) deleteNamespace() {
+	// TODO
+	// Get value of node from /namespaceToNode
+	// Remove from /namespaceToNode
+	// Revove from /namespaceMetadata (causes metadata deletion)
+	// Remove from /nodeToNamespaceMap (causes namespace deactivation)
+	// Remove from /configs (deletes all config data from nodes)
 }

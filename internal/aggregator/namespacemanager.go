@@ -104,12 +104,11 @@ func (nsm *NamespaceManager) SetNamespaceFromConfig(ns string, ecs map[int]*even
 
 func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 	nsm.NsDataLck.Lock()
-	nsLogger.Info().Msgf("Activating namespace %s", ns)
 	if _, exists := nsm.ActiveNamespaces[ns]; exists {
 		nsm.NsDataLck.Unlock()
 		return
 	}
-
+	nsLogger.Info().Msgf("Activating namespace %s", ns)
 	nsm.NsMetadata[ns] = NamespaceMetadata{
 		KeySizeMap: map[int]int{},
 	}
@@ -125,17 +124,18 @@ func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 	nsm.NsDataLck.Unlock()
 }
 
+func (nsm *NamespaceManager) DeactivateNamespace(ns string) {
+	nsm.NsDataLck.Lock()
+	nsLogger.Info().Msgf("Deactivating namespace %s", ns)
+	delete(nsm.ActiveNamespaces, ns)
+	nsm.NsDataLck.Unlock()
+}
+
 func (nsm *NamespaceManager) IncrementNumKeys(ns string, id int) {
 	nsm.NsDataLck.RLock()
 	nsm.NsMetadata[ns].KeySizeMap[id]++
 	nsm.updateMetadataChan <- ns
 	nsm.NsDataLck.RUnlock()
-}
-
-func (nsm *NamespaceManager) DeactivateNamespace(ns string) {
-	nsm.NsDataLck.Lock()
-	delete(nsm.ActiveNamespaces, ns)
-	nsm.NsDataLck.Unlock()
 }
 
 func extractEventConfigs(doc map[string]interface{}) map[int]*eventConfig {

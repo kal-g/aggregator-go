@@ -15,6 +15,15 @@ trap end EXIT
 sleep 5
 echo "Starting test"
 
+namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
+printf "Initial Namespace info was\n"
+printf "%s\n\n" $namespaceInfo
+if [ $namespaceInfo != '{"error":"","data":{"metric_keys":{"1":0}}}' ]
+then
+  end
+  exit 1
+fi
+
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
 printf "Initial Namespace count\n"
 printf "%s\n\n" $namespaceCount

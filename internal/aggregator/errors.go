@@ -46,6 +46,7 @@ func (e *NamespaceExistsError) Error() string {
 	return "Namespace exists"
 }
 
+// TODO Make this print relative file and line numbers when debug mode activated
 type NamespaceNotFoundError struct{}
 
 func (e *NamespaceNotFoundError) Error() string {
