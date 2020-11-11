@@ -37,7 +37,8 @@ func TestEngine(t *testing.T) {
 		Storage:    storage,
 	}
 	mcs := map[int]*metricConfig{1: &mc}
-	nsm := NewNSM(storage)
+	metaUpdate := make(chan string, 2)
+	nsm := NewNSM(storage, metaUpdate)
 	nsm.SetNamespaceFromConfig("global", ecs, mcs)
 	nsm.ActivateNamespace("global")
 	// Create engine
@@ -65,7 +66,8 @@ func E2ETest(t *testing.T, storage AbstractStorage) {
 	if err != nil {
 		panic(err)
 	}
-	nsm := NewNSM(storage)
+	metaUpdate := make(chan string, 2)
+	nsm := NewNSM(storage, metaUpdate)
 	nsm.SetNamespaceFromData(input)
 	nsm.ActivateNamespace("global")
 	engine := NewEngine(&nsm)
@@ -108,7 +110,8 @@ func TestNamespace(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	nsm := NewNSM(storage)
+	metaUpdate := make(chan string, 4)
+	nsm := NewNSM(storage, metaUpdate)
 	nsm.SetNamespaceFromData(input1)
 	nsm.SetNamespaceFromData(input2)
 	nsm.ActivateNamespace("global")

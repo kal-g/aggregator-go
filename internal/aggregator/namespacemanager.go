@@ -20,7 +20,9 @@ type NamespaceManager struct {
 	storage                  AbstractStorage
 	NsDataLck                *sync.RWMutex
 	EventToMetricMap         map[string]map[int][]*metricConfig
-	ActiveNamespaces         map[string]NamespaceMetadata
+	ActiveNamespaces         map[string]bool
+	NsMetadata               map[string]NamespaceMetadata
+	updateMetadataChan       chan<- string
 }
 
 var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().
@@ -29,7 +31,7 @@ var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().
 	Logger()
 
 // NSMFromRaw creates a namespace manager from a byte stream
-func NewNSM(storage AbstractStorage) NamespaceManager {
+func NewNSM(storage AbstractStorage, updateMetadataChan chan<- string) NamespaceManager {
 
 	nsm := NamespaceManager{
 		EventConfigsByNamespace:  map[string]map[int]*eventConfig{},
@@ -37,7 +39,9 @@ func NewNSM(storage AbstractStorage) NamespaceManager {
 		storage:                  storage,
 		NsDataLck:                &sync.RWMutex{},
 		EventToMetricMap:         map[string]map[int][]*metricConfig{},
-		ActiveNamespaces:         map[string]NamespaceMetadata{},
+		ActiveNamespaces:         map[string]bool{},
+		NsMetadata:               map[string]NamespaceMetadata{},
+		updateMetadataChan:       updateMetadataChan,
 	}
 	return nsm
 }
@@ -67,7 +71,7 @@ func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
 	// Reset metadata if it exists
 	if _, exists := nsm.ActiveNamespaces[ns]; exists {
 		for _, mc := range nsm.MetricConfigsByNamespace[ns] {
-			nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
+			nsm.NsMetadata[ns].KeySizeMap[mc.ID] = 0
 		}
 	}
 
@@ -106,15 +110,26 @@ func (nsm *NamespaceManager) ActivateNamespace(ns string) {
 		return
 	}
 
-	nsm.ActiveNamespaces[ns] = NamespaceMetadata{
+	nsm.NsMetadata[ns] = NamespaceMetadata{
 		KeySizeMap: map[int]int{},
 	}
 
 	for _, mc := range nsm.MetricConfigsByNamespace[ns] {
-		// TODO init with old values
-		nsm.ActiveNamespaces[ns].KeySizeMap[mc.ID] = 0
+		nsm.NsMetadata[ns].KeySizeMap[mc.ID] = 0
 	}
+
+	nsm.updateMetadataChan <- ns
+
+	nsm.ActiveNamespaces[ns] = true
+
 	nsm.NsDataLck.Unlock()
+}
+
+func (nsm *NamespaceManager) IncrementNumKeys(ns string, id int) {
+	nsm.NsDataLck.RLock()
+	nsm.NsMetadata[ns].KeySizeMap[id]++
+	nsm.updateMetadataChan <- ns
+	nsm.NsDataLck.RUnlock()
 }
 
 func (nsm *NamespaceManager) DeactivateNamespace(ns string) {
