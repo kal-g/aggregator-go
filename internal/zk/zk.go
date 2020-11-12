@@ -378,6 +378,7 @@ func (zkm *ZkManager) watchNodes() {
 }
 
 func (zkm *ZkManager) watchNamespace() {
+	// TODO Change map to be per node. Have leader watch on parent dir while children watch only their own path
 	for {
 		data, _, nsmChan, err := zkm.c.GetW("/nodeToNamespaceMap")
 		if err != nil {
@@ -631,11 +632,56 @@ func (zkm *ZkManager) watchMetadata() {
 	}
 }
 
-func (zkm *ZkManager) deleteNamespace() {
-	// TODO
-	// Get value of node from /namespaceToNode
+func (zkm *ZkManager) DeleteNamespace(ns string) error {
+	// Get name of node from /namespaceToNode
+	data, stat, err := zkm.c.Get("/namespaceToNode/" + ns)
+	if err != nil {
+		if errors.Is(err, zk.ErrNoNode) {
+			return &agg.NamespaceNotFoundError{}
+		} else {
+			panic(err)
+		}
+	}
+	nsToNode := NamespaceToNodeData{}
+	err = json.Unmarshal(data, &nsToNode)
+	if err != nil {
+		panic(err)
+	}
 	// Remove from /namespaceToNode
-	// Revove from /namespaceMetadata (causes metadata deletion)
-	// Remove from /nodeToNamespaceMap (causes namespace deactivation)
-	// Remove from /configs (deletes all config data from nodes)
+	err = zkm.c.Delete("/namespaceToNode/"+ns, stat.Version)
+	if err != nil {
+		panic(err)
+	}
+	// Revove from /namespaceMetadata (causes metadata deletion on node)
+	_, stat, err = zkm.c.Get("/namespaceMetadata/" + ns)
+	if err != nil {
+		panic(err)
+	}
+	err = zkm.c.Delete("/namespaceMetadata/"+ns, stat.Version)
+	if err != nil {
+		panic(err)
+	}
+	// Remove from /nodeToNamespaceMap (causes namespace deactivation on node)
+	data, stat, err = zkm.c.Get("/nodeToNamespaceMap")
+	if err != nil {
+		panic(err)
+	}
+	nsmd := NodeToNamespaceMapData{}
+	json.Unmarshal(data, &nsmd)
+	delete(nsmd.Map[nsToNode.Node], ns)
+	data, err = json.Marshal(nsmd)
+	if err != nil {
+		panic(err)
+	}
+	zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
+	// Remove from /configs (causes config data deletion from all nodes)
+	_, stat, err = zkm.c.Get("/configs/" + ns)
+	if err != nil {
+		panic(err)
+	}
+	err = zkm.c.Delete("/configs/"+ns, stat.Version)
+	if err != nil {
+		panic(err)
+	}
+	return nil
 }
