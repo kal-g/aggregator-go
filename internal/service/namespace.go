@@ -17,6 +17,10 @@ type NamespaceSetResult struct {
 	Err string `json:"error"`
 }
 
+type NamespaceDeleteResult struct {
+	Err string `json:"error"`
+}
+
 func (s *Service) NamespaceSet(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -71,6 +75,31 @@ func (s *Service) NamespaceSet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) NamespaceDelete(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	bodyJSON := map[string]interface{}{}
+	json.Unmarshal(body, &bodyJSON)
+
+	n, namespaceSet := bodyJSON["namespace"]
+	if !namespaceSet {
+		panic(err)
+	}
+	ns, isString := n.(string)
+	if !isString {
+		// TODO error
+		panic("Type error in get namespace")
+	}
+	err = s.Zkm.DeleteNamespace(ns)
+
+	res := NamespaceDeleteResult{}
+	if err != nil {
+		res.Err = err.Error()
+	}
+	data, _ := json.Marshal(res)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }
 
 func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +132,6 @@ func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 	} else {
 		res.Data = meta
 	}
-	logger.Debug().Msgf("Namespace get info return: %+v", res)
 	data, _ := json.Marshal(res)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)

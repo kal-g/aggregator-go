@@ -129,4 +129,33 @@ then
   exit 1
 fi
 
+sleep 1
+
+namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test2"}' http://localhost:50051/namespace/get_info`
+printf "Namespace info for test2 after set\n"
+printf "$namespaceInfo\n\n"
+if [ $namespaceInfo != '{"error":"","data":{"metric_keys":{"1":0}}}' ]
+then
+  end
+  exit 1
+fi
+
+namespaceDelete=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test2"}' http://localhost:50051/namespace/delete`
+printf "Namespace deletion for test2\n"
+printf "$namespaceDelete\n\n"
+if [ "$namespaceDelete" != '{"error":""}' ]
+then
+  end
+  exit 1
+fi
+
+namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test2"}' http://localhost:50051/namespace/get_info`
+printf "Namespace info for test2 after deletion\n"
+printf "$namespaceInfo\n\n"
+if [ "$namespaceInfo" != '{"error":"Namespace not found","data":{"metric_keys":null}}' ]
+then
+  end
+  exit 1
+fi
+
 echo "Test passed"
