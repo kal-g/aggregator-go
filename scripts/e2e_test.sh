@@ -149,6 +149,8 @@ then
   exit 1
 fi
 
+sleep 1
+
 namespaceInfo=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test2"}' http://localhost:50051/namespace/get_info`
 printf "Namespace info for test2 after deletion\n"
 printf "$namespaceInfo\n\n"
