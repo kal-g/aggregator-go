@@ -21,7 +21,42 @@ type NamespaceDeleteResult struct {
 	Err string `json:"error"`
 }
 
-func (s *Service) NamespaceSet(w http.ResponseWriter, r *http.Request) {
+type NamespaceGetResult struct {
+	Cfg string `json:"cfg"`
+	Err string `json:"error"`
+}
+
+func (s *Service) NamespaceGetConfig(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	bodyJSON := map[string]interface{}{}
+	json.Unmarshal(body, &bodyJSON)
+
+	n, namespaceSet := bodyJSON["namespace"]
+	if !namespaceSet {
+		panic(err)
+	}
+	ns, isString := n.(string)
+	if !isString {
+		// TODO error
+		panic("Type error in get namespace")
+	}
+
+	cfg, err := s.Zkm.GetConfig(ns)
+	res := NamespaceGetResult{}
+	if err != nil {
+		res.Err = err.Error()
+	} else {
+		res.Cfg = cfg
+	}
+	data, _ := json.Marshal(res)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
+func (s *Service) NamespaceSetConfig(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		panic(err)

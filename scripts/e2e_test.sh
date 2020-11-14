@@ -24,6 +24,13 @@ then
   exit 1
 fi
 
+namespaceGet=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/config/get`
+if [ -z "$namespaceGet" ]
+then
+  end
+  exit 1
+fi
+
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
 printf "Initial Namespace count\n"
 printf "%s\n\n" $namespaceCount
@@ -65,7 +72,7 @@ then
 fi
 
 testConfig=`cat config/aggregator_configs/test`
-namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${testConfig}}' http://localhost:50051/namespace/set"
+namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${testConfig}}' http://localhost:50051/namespace/config/set"
 namespaceSet=$(eval $namespaceSetCmd)
 printf "Set namespace test, no override\n"
 echo $namespaceSet
@@ -86,7 +93,7 @@ then
 fi
 
 testAltConfig=`cat config/aggregator_configs/test-alt`
-namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${testAltConfig}, \"overwriteIfExists\":true}' http://localhost:50051/namespace/set"
+namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${testAltConfig}, \"overwriteIfExists\":true}' http://localhost:50051/namespace/config/set"
 namespaceSet=$(eval $namespaceSetCmd)
 printf "Set namespace test, with override\n"
 echo $namespaceSet
@@ -118,7 +125,7 @@ then
 fi
 
 test2Config=`cat config/aggregator_configs/test2`
-namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${test2Config}}' http://localhost:50051/namespace/set"
+namespaceSetCmd="curl -s --header \"Content-Type: application/json\" --request POST --data '{\"namespaceConfig\":${test2Config}}' http://localhost:50051/namespace/config/set"
 namespaceSet=$(eval $namespaceSetCmd)
 printf "Set namespace test2, no override\n"
 echo $namespaceSet
