@@ -17,12 +17,13 @@ import (
 )
 
 const (
-	consumeURL          = "/consume"
-	countURL            = "/count"
-	debugSetLogLevelURL = "/debug/set_log_level"
-	namespaceGetInfoURL = "/namespace/get_info"
-	namespaceSetURL     = "/namespace/config/set"
-	namespaceDeleteURL  = "/namespace/delete"
+	consumeURL            = "/consume"
+	countURL              = "/count"
+	debugSetLogLevelURL   = "/debug/set_log_level"
+	namespaceGetInfoURL   = "/namespace/get_info"
+	namespaceSetConfigURL = "/namespace/config/set"
+	namespaceGetConfigURL = "/namespace/config/get"
+	namespaceDeleteURL    = "/namespace/delete"
 )
 
 type configEnv struct {
@@ -99,7 +100,8 @@ func getRouter(svc *service.Service) *mux.Router {
 	r.HandleFunc(countURL, svc.Count).Methods("GET", "POST")
 	r.HandleFunc(debugSetLogLevelURL, svc.DebugSetLogLevel).Methods("GET", "POST")
 	r.HandleFunc(namespaceGetInfoURL, svc.NamespaceGetInfo).Methods("GET", "POST")
-	r.HandleFunc(namespaceSetURL, svc.NamespaceSet).Methods("GET", "POST")
+	r.HandleFunc(namespaceSetConfigURL, svc.NamespaceSetConfig).Methods("GET", "POST")
+	r.HandleFunc(namespaceGetConfigURL, svc.NamespaceGetConfig).Methods("GET", "POST")
 	r.HandleFunc(namespaceDeleteURL, svc.NamespaceDelete).Methods("GET", "POST")
 	return r
 }

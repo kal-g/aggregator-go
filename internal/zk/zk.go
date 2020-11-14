@@ -685,3 +685,18 @@ func (zkm *ZkManager) DeleteNamespace(ns string) error {
 	}
 	return nil
 }
+
+func (zkm *ZkManager) GetConfig(ns string) (string, error) {
+	data, _, err := zkm.c.Get("/configs/" + ns)
+	if err != nil {
+		if errors.Is(err, zk.ErrNoNode) {
+			return "", &agg.NamespaceNotFoundError{}
+		} else {
+			panic(err)
+		}
+	}
+	cfg := map[string]interface{}{}
+	json.Unmarshal(data, &cfg)
+	data, err = json.Marshal(cfg)
+	return string(data), nil
+}

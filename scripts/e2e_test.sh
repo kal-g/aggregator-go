@@ -24,6 +24,13 @@ then
   exit 1
 fi
 
+namespaceGet=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/config/get`
+if [ -z "$namespaceGet" ]
+then
+  end
+  exit 1
+fi
+
 namespaceCount=`curl -s --header "Content-Type: application/json" --request POST --data '{"namespace":"test","metricKey":2,"metricID":1}' http://localhost:50051/count`
 printf "Initial Namespace count\n"
 printf "%s\n\n" $namespaceCount
