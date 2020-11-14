@@ -21,7 +21,7 @@ const (
 	countURL            = "/count"
 	debugSetLogLevelURL = "/debug/set_log_level"
 	namespaceGetInfoURL = "/namespace/get_info"
-	namespaceSetURL     = "/namespace/set"
+	namespaceSetURL     = "/namespace/config/set"
 	namespaceDeleteURL  = "/namespace/delete"
 )
 
