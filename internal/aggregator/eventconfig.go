@@ -29,6 +29,7 @@ func (ec eventConfig) validate(re map[string]interface{}) *event {
 	if len(re) != len(ec.Fields)+1 {
 		return nil
 	}
+	logger.Info().Msgf("Fields: %+v", ec.Fields)
 	// Iterate over each field in the config, and make sure type matches config
 	for fieldName, fieldType := range ec.Fields {
 		// First check the field exists
@@ -48,7 +49,10 @@ func (ec eventConfig) validate(re map[string]interface{}) *event {
 			if !isInt {
 				return nil
 			}
+		default:
+			panic("Invalid field type")
 		}
+
 	}
 	delete(re, "id")
 	return &event{
