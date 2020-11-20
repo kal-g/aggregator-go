@@ -89,8 +89,8 @@ func NewConfigMutator(cfg string) ConfigMutator {
 
 func (cm *ConfigMutator) Update() {
 	cm.allFields = map[string]int{}
-	cm.keyFields = map[string]bool{}
-	cm.countFields = map[string]bool{}
+	cm.KeyFields = map[string]bool{}
+	cm.CountFields = map[string]bool{}
 	cm.fieldToEventIDs = map[string]map[int]bool{}
 	// Get all fields from events, and map to ids
 	for _, e := range cm.c.Events {
@@ -110,13 +110,13 @@ func (cm *ConfigMutator) Update() {
 	// Key fields can only be ints (for now)
 	for fieldName, fieldType := range cm.allFields {
 		if fieldType == 1 {
-			cm.countFields[fieldName] = true
+			cm.CountFields[fieldName] = true
 		}
 	}
 	// Count fields can only be ints (for now)
 	for fieldName, fieldType := range cm.allFields {
 		if fieldType == 1 {
-			cm.keyFields[fieldName] = true
+			cm.KeyFields[fieldName] = true
 		}
 	}
 }

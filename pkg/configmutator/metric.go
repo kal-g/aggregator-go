@@ -2,10 +2,10 @@ package configmutator
 
 func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 	// Check for valid key field
-	if _, exists := cm.keyFields[kf]; !exists {
+	if _, exists := cm.KeyFields[kf]; !exists {
 		return &InvalidKeyField{}
 	}
-	if _, exists := cm.countFields[cf]; !exists {
+	if _, exists := cm.CountFields[cf]; !exists {
 		return &InvalidCountField{}
 	}
 	// Check for valid count field
