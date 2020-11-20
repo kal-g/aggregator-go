@@ -38,8 +38,8 @@ type ConfigMutator struct {
 	c Config
 	// Data structures for easy access to common data
 	allFields       map[string]int
-	keyFields       map[string]bool
-	countFields     map[string]bool
+	KeyFields       map[string]bool
+	CountFields     map[string]bool
 	fieldToEventIDs map[string]map[int]bool
 	nextEventID     int
 	nextMetricID    int
