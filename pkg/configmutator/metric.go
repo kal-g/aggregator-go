@@ -18,7 +18,7 @@ func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 		Type:       "count",
 		Filter:     []interface{}{"null"},
 	}
-	cm.nextEventID++
+	cm.nextMetricID++
 	cm.Update()
 	return nil
 }
