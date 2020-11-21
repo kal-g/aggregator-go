@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	ct "github.com/kal-g/aggregator-go/internal/common_test"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigMutator(t *testing.T) {
@@ -65,5 +66,6 @@ func TestConfigMutator(t *testing.T) {
 	ct.AssertEqual(t, ids, []int{2})
 
 	ids = cm.GetNewEventIDsForMetric(2)
-	ct.AssertEqual(t, ids, []int{1, 2})
+	assert.ElementsMatch(t, ids, []int{1, 2})
+
 }
