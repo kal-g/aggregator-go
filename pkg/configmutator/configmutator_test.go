@@ -61,6 +61,8 @@ func TestConfigMutator(t *testing.T) {
 	ct.AssertEqual(t, err, &InvalidCountField{})
 	err = cm.AddNewMetric("testMetric2", "test1", "test1")
 	ct.AssertEqual(t, err, nil)
+	err = cm.AddNewMetric("testMetric3", "test1", "")
+	ct.AssertEqual(t, err, nil)
 
 	ids := cm.GetNewEventIDsForMetric(1)
 	ct.AssertEqual(t, ids, []int{2})
