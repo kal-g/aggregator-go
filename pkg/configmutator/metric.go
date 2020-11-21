@@ -9,7 +9,7 @@ func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 		return &InvalidCountField{}
 	}
 	// Check for valid count field
-	cm.c.Metrics[cm.nextMetricID] = MetricConfig{
+	cm.C.Metrics[cm.nextMetricID] = MetricConfig{
 		ID:         cm.nextMetricID,
 		Name:       name,
 		EventIDs:   []int{},
@@ -24,9 +24,9 @@ func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 }
 
 func (cm *ConfigMutator) GetNewEventIDsForMetric(id int) []int {
-	keyField := cm.c.Metrics[id].KeyField
-	countField := cm.c.Metrics[id].CountField
-	eventIDs := cm.c.Metrics[id].EventIDs
+	keyField := cm.C.Metrics[id].KeyField
+	countField := cm.C.Metrics[id].CountField
+	eventIDs := cm.C.Metrics[id].EventIDs
 	eventIDsMap := map[int]bool{}
 	for _, id := range eventIDs {
 		eventIDsMap[id] = true

@@ -1,7 +1,7 @@
 package configmutator
 
 func (cm *ConfigMutator) AddNewEvent(name string) {
-	cm.c.Events[cm.nextEventID] = EventConfig{
+	cm.C.Events[cm.nextEventID] = EventConfig{
 		Name:   name,
 		ID:     cm.nextEventID,
 		Fields: map[string]int{},
@@ -12,7 +12,7 @@ func (cm *ConfigMutator) AddNewEvent(name string) {
 
 func (cm *ConfigMutator) AddEventField(eID int, fieldName string, fieldType int) error {
 	// Check if event exists
-	if _, exists := cm.c.Events[eID]; !exists {
+	if _, exists := cm.C.Events[eID]; !exists {
 		return &EventNotFoundError{}
 	}
 	// Check for field conflict
@@ -20,10 +20,10 @@ func (cm *ConfigMutator) AddEventField(eID int, fieldName string, fieldType int)
 		return &FieldTypeConflict{}
 	}
 	// Check if event already contains field
-	if _, exists := cm.c.Events[eID].Fields[fieldName]; exists {
+	if _, exists := cm.C.Events[eID].Fields[fieldName]; exists {
 		return &FieldAlreadyExists{}
 	}
-	cm.c.Events[eID].Fields[fieldName] = fieldType
+	cm.C.Events[eID].Fields[fieldName] = fieldType
 	cm.Update()
 	return nil
 }

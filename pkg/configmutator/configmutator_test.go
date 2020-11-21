@@ -14,23 +14,23 @@ func TestConfigMutator(t *testing.T) {
 	}
 	cm := NewConfigMutator(string(input))
 
-	ct.AssertEqual(t, cm.c.Namespace, "global")
+	ct.AssertEqual(t, cm.C.Namespace, "global")
 
-	ct.AssertEqual(t, cm.c.Metrics[1].ID, 1)
-	ct.AssertEqual(t, cm.c.Metrics[1].Name, "testMetric")
-	ct.AssertEqual(t, cm.c.Metrics[1].EventIDs, []int{1})
-	ct.AssertEqual(t, cm.c.Metrics[1].KeyField, "test1")
-	ct.AssertEqual(t, cm.c.Metrics[1].Type, "count")
-	ct.AssertEqual(t, cm.c.Metrics[1].Filter, []interface{}{
+	ct.AssertEqual(t, cm.C.Metrics[1].ID, 1)
+	ct.AssertEqual(t, cm.C.Metrics[1].Name, "testMetric")
+	ct.AssertEqual(t, cm.C.Metrics[1].EventIDs, []int{1})
+	ct.AssertEqual(t, cm.C.Metrics[1].KeyField, "test1")
+	ct.AssertEqual(t, cm.C.Metrics[1].Type, "count")
+	ct.AssertEqual(t, cm.C.Metrics[1].Filter, []interface{}{
 		"all",
 		[]interface{}{"gt", "test1", float64(1)},
 		[]interface{}{"gt", "test2", float64(1)},
 	})
-	ct.AssertEqual(t, cm.c.Metrics[1].CountField, "test1")
+	ct.AssertEqual(t, cm.C.Metrics[1].CountField, "test1")
 
-	ct.AssertEqual(t, cm.c.Events[1].ID, 1)
-	ct.AssertEqual(t, cm.c.Events[1].Name, "testEvent")
-	ct.AssertEqual(t, cm.c.Events[1].Fields, map[string]int{
+	ct.AssertEqual(t, cm.C.Events[1].ID, 1)
+	ct.AssertEqual(t, cm.C.Events[1].Name, "testEvent")
+	ct.AssertEqual(t, cm.C.Events[1].Fields, map[string]int{
 		"test1": 1,
 		"test2": 1,
 		"test3": 1,
@@ -39,9 +39,9 @@ func TestConfigMutator(t *testing.T) {
 
 	// Add New Event
 	cm.AddNewEvent("testEvent2")
-	ct.AssertEqual(t, cm.c.Events[2].ID, 2)
-	ct.AssertEqual(t, cm.c.Events[2].Name, "testEvent2")
-	ct.AssertEqual(t, cm.c.Events[2].Fields, map[string]int{})
+	ct.AssertEqual(t, cm.C.Events[2].ID, 2)
+	ct.AssertEqual(t, cm.C.Events[2].Name, "testEvent2")
+	ct.AssertEqual(t, cm.C.Events[2].Fields, map[string]int{})
 
 	// Add Event Field
 	err = cm.AddEventField(3, "test1", 0)

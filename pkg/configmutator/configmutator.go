@@ -35,7 +35,7 @@ type ConfigJSON struct {
 }
 
 type ConfigMutator struct {
-	c Config
+	C Config
 	// Data structures for easy access to common data
 	allFields       map[string]int
 	KeyFields       map[string]bool
@@ -82,7 +82,7 @@ func NewConfigMutator(cfg string) ConfigMutator {
 		}
 	}
 	cm.nextMetricID++
-	cm.c = c
+	cm.C = c
 	cm.Update()
 	return cm
 }
@@ -93,7 +93,7 @@ func (cm *ConfigMutator) Update() {
 	cm.CountFields = map[string]bool{}
 	cm.fieldToEventIDs = map[string]map[int]bool{}
 	// Get all fields from events, and map to ids
-	for _, e := range cm.c.Events {
+	for _, e := range cm.C.Events {
 		for fieldName, fieldType := range e.Fields {
 			// All fields
 			if existingType, exists := cm.allFields[fieldName]; exists && (existingType != fieldType) {
