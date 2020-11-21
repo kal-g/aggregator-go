@@ -5,7 +5,7 @@ func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 	if _, exists := cm.KeyFields[kf]; !exists {
 		return &InvalidKeyField{}
 	}
-	if _, exists := cm.CountFields[cf]; !exists || cf == "" {
+	if _, exists := cm.CountFields[cf]; cf != "" && !exists {
 		return &InvalidCountField{}
 	}
 	// Check for valid count field
