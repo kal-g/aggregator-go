@@ -23,6 +23,26 @@ func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 	return nil
 }
 
+func (cm *ConfigMutator) AddEventID(metricID int, eventID int) error {
+	// Check if metric exists
+	if _, exists := cm.C.Metrics[metricID]; !exists {
+		return &MetricNotFoundError{}
+	}
+	// Check if event ID exists
+	for _, id := range cm.C.Metrics[metricID].EventIDs {
+		if eventID == id {
+			return &EventIDExists{}
+		}
+	}
+
+	// Add event id
+	m := cm.C.Metrics[metricID]
+	m.EventIDs = append(m.EventIDs, eventID)
+	cm.C.Metrics[metricID] = m
+	cm.Update()
+	return nil
+}
+
 func (cm *ConfigMutator) GetNewEventIDsForMetric(id int) []int {
 	keyField := cm.C.Metrics[id].KeyField
 	countField := cm.C.Metrics[id].CountField
