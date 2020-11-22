@@ -6,6 +6,18 @@ func (e *EventNotFoundError) Error() string {
 	return "Event not found"
 }
 
+type MetricNotFoundError struct{}
+
+func (e *MetricNotFoundError) Error() string {
+	return "Metric not found"
+}
+
+type EventIDExists struct{}
+
+func (e *EventIDExists) Error() string {
+	return "Event ID exists"
+}
+
 type FieldTypeConflict struct{}
 
 func (e *FieldTypeConflict) Error() string {
