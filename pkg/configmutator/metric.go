@@ -37,10 +37,10 @@ func (cm *ConfigMutator) GetNewEventIDsForMetric(id int) []int {
 	countFieldIDs := cm.fieldToEventIDs[countField]
 
 	newIDs := []int{}
-	for id, _ := range keyFieldIDs {
+	for id := range keyFieldIDs {
 		_, cfExists := countFieldIDs[id]
 		_, idExists := eventIDsMap[id]
-		if cfExists && !idExists {
+		if (countField == "" || cfExists) && !idExists {
 			newIDs = append(newIDs, id)
 		}
 	}
