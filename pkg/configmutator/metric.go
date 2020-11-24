@@ -16,7 +16,7 @@ func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 		KeyField:   kf,
 		CountField: cf,
 		Type:       "count",
-		Filter:     []interface{}{"null"},
+		Filter:     []interface{}{"[\"null\"]"},
 	}
 	cm.nextMetricID++
 	cm.Update()
