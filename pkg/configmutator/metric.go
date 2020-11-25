@@ -43,6 +43,12 @@ func (cm *ConfigMutator) AddEventID(metricID int, eventID int) error {
 	return nil
 }
 
+func (cm *ConfigMutator) SetFilterForMetric(id int, filter []interface{}) {
+	m := cm.C.Metrics[id]
+	m.Filter = filter
+	cm.C.Metrics[id] = m
+}
+
 func (cm *ConfigMutator) GetNewEventIDsForMetric(id int) []int {
 	keyField := cm.C.Metrics[id].KeyField
 	countField := cm.C.Metrics[id].CountField
