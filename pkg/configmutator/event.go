@@ -16,7 +16,7 @@ func (cm *ConfigMutator) AddEventField(eID int, fieldName string, fieldType int)
 		return &EventNotFoundError{}
 	}
 	// Check for field conflict
-	if ft, exists := cm.allFields[fieldName]; exists && (ft != fieldType) {
+	if ft, exists := cm.AllFields[fieldName]; exists && (ft != fieldType) {
 		return &FieldTypeConflict{}
 	}
 	// Check if event already contains field
