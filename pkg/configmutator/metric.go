@@ -1,5 +1,7 @@
 package configmutator
 
+import "encoding/json"
+
 func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 	// Check for valid key field
 	if _, exists := cm.KeyFields[kf]; !exists {
@@ -9,14 +11,17 @@ func (cm *ConfigMutator) AddNewMetric(name string, kf string, cf string) error {
 		return &InvalidCountField{}
 	}
 	// Check for valid count field
+	filter := []interface{}{"null"}
+	filterString, _ := json.Marshal(filter)
 	cm.C.Metrics[cm.nextMetricID] = MetricConfig{
-		ID:         cm.nextMetricID,
-		Name:       name,
-		EventIDs:   []int{},
-		KeyField:   kf,
-		CountField: cf,
-		Type:       "count",
-		Filter:     []interface{}{"[\"null\"]"},
+		ID:           cm.nextMetricID,
+		Name:         name,
+		EventIDs:     []int{},
+		KeyField:     kf,
+		CountField:   cf,
+		Type:         "count",
+		Filter:       filter,
+		FilterString: string(filterString),
 	}
 	cm.nextMetricID++
 	cm.Update()
