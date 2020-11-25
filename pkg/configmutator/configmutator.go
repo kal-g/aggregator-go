@@ -37,7 +37,7 @@ type ConfigJSON struct {
 type ConfigMutator struct {
 	C Config
 	// Data structures for easy access to common data
-	allFields       map[string]int
+	AllFields       map[string]int
 	KeyFields       map[string]bool
 	CountFields     map[string]bool
 	fieldToEventIDs map[string]map[int]bool
@@ -88,7 +88,7 @@ func NewConfigMutator(cfg string) ConfigMutator {
 }
 
 func (cm *ConfigMutator) Update() {
-	cm.allFields = map[string]int{}
+	cm.AllFields = map[string]int{}
 	cm.KeyFields = map[string]bool{}
 	cm.CountFields = map[string]bool{}
 	cm.fieldToEventIDs = map[string]map[int]bool{}
@@ -96,10 +96,10 @@ func (cm *ConfigMutator) Update() {
 	for _, e := range cm.C.Events {
 		for fieldName, fieldType := range e.Fields {
 			// All fields
-			if existingType, exists := cm.allFields[fieldName]; exists && (existingType != fieldType) {
+			if existingType, exists := cm.AllFields[fieldName]; exists && (existingType != fieldType) {
 				panic("Conflicting field types found")
 			}
-			cm.allFields[fieldName] = fieldType
+			cm.AllFields[fieldName] = fieldType
 			// Map to ids
 			if _, exists := cm.fieldToEventIDs[fieldName]; !exists {
 				cm.fieldToEventIDs[fieldName] = map[int]bool{}
@@ -108,13 +108,13 @@ func (cm *ConfigMutator) Update() {
 		}
 	}
 	// Key fields can only be ints (for now)
-	for fieldName, fieldType := range cm.allFields {
+	for fieldName, fieldType := range cm.AllFields {
 		if fieldType == 1 {
 			cm.CountFields[fieldName] = true
 		}
 	}
 	// Count fields can only be ints (for now)
-	for fieldName, fieldType := range cm.allFields {
+	for fieldName, fieldType := range cm.AllFields {
 		if fieldType == 1 {
 			cm.KeyFields[fieldName] = true
 		}
