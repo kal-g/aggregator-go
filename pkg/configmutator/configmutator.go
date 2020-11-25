@@ -10,7 +10,7 @@ type EventConfig struct {
 	Fields map[string]int `json:"fields"`
 }
 
-type MetricConfig struct {
+type MetricConfigJSON struct {
 	ID         int           `json:"id"`
 	Name       string        `json:"name"`
 	EventIDs   []int         `json:"event_ids"`
@@ -18,6 +18,17 @@ type MetricConfig struct {
 	CountField string        `json:"count_field"`
 	Type       string        `json:"type"`
 	Filter     []interface{} `json:"filter"`
+}
+
+type MetricConfig struct {
+	ID           int           `json:"id"`
+	Name         string        `json:"name"`
+	EventIDs     []int         `json:"event_ids"`
+	KeyField     string        `json:"key_field"`
+	CountField   string        `json:"count_field"`
+	Type         string        `json:"type"`
+	Filter       []interface{} `json:"filter"`
+	FilterString string        `json:"filter_string"`
 }
 
 type Config struct {
@@ -29,7 +40,7 @@ type Config struct {
 
 type ConfigJSON struct {
 	Namespace string                 `json:"namespace"`
-	Metrics   []MetricConfig         `json:"metrics"`
+	Metrics   []MetricConfigJSON     `json:"metrics"`
 	Events    []EventConfig          `json:"events"`
 	ExtraInfo map[string]interface{} `json:"extra_info"`
 }
@@ -76,7 +87,17 @@ func NewConfigMutator(cfg string) ConfigMutator {
 		if _, exists := c.Metrics[m.ID]; exists {
 			panic("Duplicate metric IDs")
 		}
-		c.Metrics[m.ID] = m
+		filterString, _ := json.Marshal(m.Filter)
+		c.Metrics[m.ID] = MetricConfig{
+			ID:           m.ID,
+			Name:         m.Name,
+			EventIDs:     m.EventIDs,
+			KeyField:     m.KeyField,
+			CountField:   m.CountField,
+			Type:         m.Type,
+			Filter:       m.Filter,
+			FilterString: string(filterString),
+		}
 		if m.ID > cm.nextMetricID {
 			cm.nextMetricID = m.ID
 		}

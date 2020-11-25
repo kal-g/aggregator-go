@@ -27,6 +27,7 @@ func TestConfigMutator(t *testing.T) {
 		[]interface{}{"gt", "test1", float64(1)},
 		[]interface{}{"gt", "test2", float64(1)},
 	})
+	ct.AssertEqual(t, cm.C.Metrics[1].FilterString, `["all",["gt","test1",1],["gt","test2",1]]`)
 	ct.AssertEqual(t, cm.C.Metrics[1].CountField, "test1")
 
 	ct.AssertEqual(t, cm.C.Events[1].ID, 1)
@@ -63,6 +64,7 @@ func TestConfigMutator(t *testing.T) {
 	ct.AssertEqual(t, err, nil)
 	err = cm.AddNewMetric("testMetric3", "test1", "")
 	ct.AssertEqual(t, err, nil)
+	ct.AssertEqual(t, cm.C.Metrics[3].FilterString, `["null"]`)
 
 	ids := cm.GetNewEventIDsForMetric(1)
 	ct.AssertEqual(t, ids, []int{2})
