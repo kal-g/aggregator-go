@@ -34,7 +34,6 @@ func (mc metricConfig) handleEvent(event event, ns string) (metricHandleResult, 
 	// Get metric from storage, or initialize if it doesn't exist
 	mc.Storage.Lock(ns)
 	storageKey := getMetricStorageKey(event.GetDataField(mc.KeyField).(int), mc.ID, ns)
-	logger.Info().Msgf("Storage Key: %+v\n", storageKey)
 	r := mc.Storage.Get(storageKey)
 
 	if errors.Is(r.Err, &StorageKeyNotFoundError{}) {

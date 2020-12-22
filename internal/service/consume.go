@@ -30,6 +30,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		}
 		namespace = nString
 	}
+
 	err = s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
 	errMsg := ""
 	if err != nil {
@@ -39,7 +40,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		Err: errMsg,
 	}
 	data, _ := json.Marshal(consumeRes)
-	logger.Info().Msgf("Send %+v", string(data))
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
 }
