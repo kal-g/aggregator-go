@@ -41,10 +41,12 @@ docker_build_local: all
 	-docker image rm -f kalgg/aggregator-go:local
 	cd .. && docker build -t kalgg/aggregator-go:local -f aggregator-go/config/docker/main/Dockerfile .
 
-docker_run_all: start_net start_redis start_zk
+start_agg:
 	-docker stop $(NODE_NAME)
 	-docker rm $(NODE_NAME)
 	docker run -e REDIS_URL=redis:6379 -e ZOOKEEPER_URL=zk:2181 -e NODE_NAME=$(NODE_NAME) --network=agg --name $(NODE_NAME) -p $(NODE_PORT):50051 kalgg/aggregator-go:local
+
+docker_run_all: start_net start_redis start_zk start_agg
 
 run: all
 	NODE_NAME=agg REDIS_URL=localhost:6379 ZOOKEEPER_URL=localhost:2181 ./bin/aggregator

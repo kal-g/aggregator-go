@@ -42,9 +42,9 @@ func (e Engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 		return &EventConfigNotFoundError{}
 	}
 	// Validate against the config
-	event := eventConfig.validate(rawEvent)
-	if event == nil {
-		return &EventValidationFailedError{}
+	event, err := eventConfig.validate(rawEvent)
+	if err != nil {
+		return err
 	}
 	// Check namespace
 	e.Nsm.NsDataLck.RLock()

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	ct "github.com/kal-g/aggregator-go/internal/common_test"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEventIdValidation(t *testing.T) {
@@ -18,8 +19,10 @@ func TestEventIdValidation(t *testing.T) {
 	re2 := map[string]interface{}{"id": 2}
 
 	// Validate events
-	v1 := ec.validate(re1)
-	v2 := ec.validate(re2)
+	v1, err := ec.validate(re1)
+	assert.Nil(t, err)
+	v2, err := ec.validate(re2)
+	ct.AssertEqual(t, err, &EventValidationFailedError{"ID does not match"})
 
 	var nilEvent *event
 	validEvent := new(event)
@@ -72,8 +75,10 @@ func TestValidateNumberOfFields(t *testing.T) {
 
 	// Check
 	var nilEvent *event
-	v1 := ec.validate(validEvent)
-	v2 := ec.validate(invalidEvent)
+	v1, err := ec.validate(validEvent)
+	assert.Nil(t, err)
+	v2, err := ec.validate(invalidEvent)
+	ct.AssertEqual(t, err, &EventValidationFailedError{"Field length mismatch"})
 
 	validEventE := new(event)
 	validEventE.ID = 1
@@ -119,9 +124,12 @@ func TestValidateFieldTypes(t *testing.T) {
 	}
 
 	// Validate events
-	v1 := ec.validate(validEvent)
-	v2 := ec.validate(invalidEvent1)
-	v3 := ec.validate(invalidEvent2)
+	v1, err := ec.validate(validEvent)
+	assert.Nil(t, err)
+	v2, err := ec.validate(invalidEvent1)
+	ct.AssertEqual(t, err, &EventValidationFailedError{"Incorrect field type, not string"})
+	v3, err := ec.validate(invalidEvent2)
+	ct.AssertEqual(t, err, &EventValidationFailedError{"Incorrect field type, not int"})
 
 	var nilEvent *event
 	validEventE := new(event)
