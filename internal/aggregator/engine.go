@@ -26,6 +26,7 @@ func NewEngine(nsm *NamespaceManager) Engine {
 // and updates the relevant metrics
 func (e Engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string) error {
 	// Event must have an id to identify what event it is
+	logger.Info().Msgf("Handle Raw\n")
 	id, idExists := rawEvent["id"]
 	if !idExists {
 		return &InvalidEventIDError{}
@@ -42,15 +43,16 @@ func (e Engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 		return &EventConfigNotFoundError{}
 	}
 	// Validate against the config
-	event := eventConfig.validate(rawEvent)
-	if event == nil {
-		return &EventValidationFailedError{}
+	event, err := eventConfig.validate(rawEvent)
+	if err != nil {
+		return err
 	}
 	// Check namespace
 	e.Nsm.NsDataLck.RLock()
 	if _, nsExists := e.Nsm.ActiveNamespaces[namespace]; !nsExists {
 		return &NamespaceNotFoundError{}
 	}
+	logger.Info().Msgf("Handle Raw End\n")
 	e.Nsm.NsDataLck.RUnlock()
 	res := e.handleEvent(*event, namespace)
 	return res

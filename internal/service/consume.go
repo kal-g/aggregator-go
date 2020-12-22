@@ -30,7 +30,6 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		}
 		namespace = nString
 	}
-
 	err = s.doConsume(bodyJSON["payload"].(map[string]interface{}), namespace)
 	errMsg := ""
 	if err != nil {
@@ -40,7 +39,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		Err: errMsg,
 	}
 	data, _ := json.Marshal(consumeRes)
-
+	logger.Info().Msgf("Send %+v", string(data))
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
 }
@@ -48,6 +47,7 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 func (s *Service) doConsume(payload map[string]interface{}, namespace string) error {
 	// Since we're unmarshalling into an interface, unmarshal converts to floats
 	// Convert the floats to ints
+	logger.Info().Msgf("DoConsume\n")
 	sanitizedPayload := map[string]interface{}{}
 	for k, v := range payload {
 		vAsFloat, isFloat := v.(float64)

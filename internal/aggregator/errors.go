@@ -1,5 +1,7 @@
 package aggregator
 
+import "fmt"
+
 // Storage errors
 type StorageKeyNotFoundError struct{}
 
@@ -26,10 +28,12 @@ func (e *EventConfigNotFoundError) Error() string {
 	return "Event config not found"
 }
 
-type EventValidationFailedError struct{}
+type EventValidationFailedError struct {
+	msg string
+}
 
 func (e *EventValidationFailedError) Error() string {
-	return "Event validation failed"
+	return fmt.Sprintf("Event validation failed: %+v", e.msg)
 }
 
 type NoMetricsFoundError struct{}

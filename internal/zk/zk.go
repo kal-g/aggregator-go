@@ -557,7 +557,7 @@ func (zkm *ZkManager) watchConfigs() {
 		e = <-watchChan
 		logger.Info().Msgf("Config change: %s", e.Type.String())
 		// kill all the other channels waiting
-		if len(configs) > 0 {
+		if len(configs) > 1 {
 			signalChan <- true
 		}
 	}
