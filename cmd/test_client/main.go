@@ -11,10 +11,6 @@ import (
 	"strconv"
 )
 
-const (
-	address = "localhost:50051"
-)
-
 func getPayload() map[string]interface{} {
 	v := make(map[string]interface{})
 	v["id"] = 1
@@ -59,7 +55,10 @@ func main() {
 		}
 	} else {
 		for {
-			client.Do(req)
+			_, err := client.Do(req)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 	fmt.Printf("Sent %d messages successfully\n", successCount)

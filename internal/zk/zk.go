@@ -179,12 +179,18 @@ func (zkm *ZkManager) DistributeNamespaces() {
 	for _, ns := range nss {
 		data, _, _ := zkm.c.Get("/namespaceToNode/" + ns)
 		nsToNode := NamespaceToNodeData{}
-		json.Unmarshal(data, &nsToNode)
+		err = json.Unmarshal(data, &nsToNode)
+		if err != nil {
+			panic(err)
+		}
 		distributedNs[ns] = nsToNode.Node
 	}
 
 	// Check for nodes that were removed
 	data, stat, err := zkm.c.Get("/nodeToNamespaceMap")
+	if err != nil {
+		panic(err)
+	}
 	nsmap := NodeToNamespaceMapData{}
 	err = json.Unmarshal(data, &nsmap)
 	if err != nil {
@@ -199,7 +205,10 @@ func (zkm *ZkManager) DistributeNamespaces() {
 
 			for ns := range namespaces {
 				delete(distributedNs, ns)
-				zkm.c.Delete("/namespaceToNode/"+ns, nstnStat.Version)
+				err = zkm.c.Delete("/namespaceToNode/"+ns, nstnStat.Version)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -316,7 +325,10 @@ func (zkm *ZkManager) unassignLeaderNamespaces() {
 		panic(err)
 	}
 	nsmd := NodeToNamespaceMapData{}
-	json.Unmarshal(data, &nsmd)
+	err = json.Unmarshal(data, &nsmd)
+	if err != nil {
+		panic(err)
+	}
 	namespaces := nsmd.Map[zkm.nodeName]
 	logger.Info().Msgf("Became leader, unnassigning namespaces %v", namespaces)
 
@@ -339,6 +351,9 @@ func (zkm *ZkManager) unassignLeaderNamespaces() {
 		panic(err)
 	}
 	_, err = zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
+	if err != nil {
+		panic(err)
+	}
 
 	// Deactivate namespaces
 	for ns := range namespaces {
@@ -385,7 +400,10 @@ func (zkm *ZkManager) watchNamespace() {
 			panic(err)
 		}
 		nsmd := NodeToNamespaceMapData{}
-		json.Unmarshal(data, &nsmd)
+		err = json.Unmarshal(data, &nsmd)
+		if err != nil {
+			panic(err)
+		}
 		// Get our current namespaces and compare with new ones to find ones to deactivate
 		// TODO Deep copy
 		nsToDeactivate := map[string]bool{}
@@ -394,9 +412,7 @@ func (zkm *ZkManager) watchNamespace() {
 		}
 		for ns := range nsmd.Map[zkm.nodeName] {
 			zkm.nsm.ActivateNamespace(ns)
-			if _, exists := nsToDeactivate[ns]; exists {
-				delete(nsToDeactivate, ns)
-			}
+			delete(nsToDeactivate, ns)
 
 		}
 		for ns := range nsToDeactivate {
@@ -470,7 +486,10 @@ func (zkm *ZkManager) watchNextNode(ch <-chan zk.Event) {
 func (zkm *ZkManager) IngestConfigToZK(data []byte) {
 	// Extract namespace
 	var doc map[string]interface{}
-	json.Unmarshal(data, &doc)
+	err := json.Unmarshal(data, &doc)
+	if err != nil {
+		panic(err)
+	}
 	ns := doc["namespace"].(string)
 	logger.Info().Msgf("Ingesting config for ns %v into ZK", ns)
 	// If exists, set, otherwise, create
@@ -537,12 +556,10 @@ func (zkm *ZkManager) watchConfigs() {
 			}
 			zkm.nsm.SetNamespaceFromData(data)
 			go mergeChans(signalChan, nodeChan, watchChan)
-			if _, exists := configsToDelete[ns]; exists {
-				delete(configsToDelete, ns)
-			}
+			delete(configsToDelete, ns)
 		}
 		// Find namespaces that were deleted and deactivate them
-		for ns, _ := range configsToDelete {
+		for ns := range configsToDelete {
 			delete(zkm.nsm.MetricConfigsByNamespace, ns)
 			delete(zkm.nsm.NsMetadata, ns)
 			delete(zkm.nsm.EventConfigsByNamespace, ns)
@@ -582,7 +599,10 @@ func (zkm *ZkManager) metadataUpdater() {
 			}
 			continue
 		}
-		zkm.c.Set("/namespaceMetadata/"+ns, data, stat.Version)
+		_, err = zkm.c.Set("/namespaceMetadata/"+ns, data, stat.Version)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -592,7 +612,7 @@ func (zkm *ZkManager) watchMetadata() {
 	for {
 		// Compare against existing metadata to find namespaces to delete
 		nsToDelete := map[string]bool{}
-		for ns, _ := range zkm.nsm.NsMetadata {
+		for ns := range zkm.nsm.NsMetadata {
 			nsToDelete[ns] = true
 		}
 		// Get ZK metadata
@@ -615,9 +635,7 @@ func (zkm *ZkManager) watchMetadata() {
 			}
 			zkm.nsm.NsMetadata[ns] = nsMeta
 			go mergeChans(signalChan, nodeChan, watchChan)
-			if _, exists := nsToDelete[ns]; exists {
-				delete(nsToDelete, ns)
-			}
+			delete(nsToDelete, ns)
 		}
 		e = <-watchChan
 		logger.Info().Msgf("Metadata change: %s", e.Type.String())
@@ -667,13 +685,19 @@ func (zkm *ZkManager) DeleteNamespace(ns string) error {
 		panic(err)
 	}
 	nsmd := NodeToNamespaceMapData{}
-	json.Unmarshal(data, &nsmd)
+	err = json.Unmarshal(data, &nsmd)
+	if err != nil {
+		panic(err)
+	}
 	delete(nsmd.Map[nsToNode.Node], ns)
 	data, err = json.Marshal(nsmd)
 	if err != nil {
 		panic(err)
 	}
-	zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
+	_, err = zkm.c.Set("/nodeToNamespaceMap", data, stat.Version)
+	if err != nil {
+		panic(err)
+	}
 	// Remove from /configs (causes config data deletion from all nodes)
 	_, stat, err = zkm.c.Get("/configs/" + ns)
 	if err != nil {
@@ -696,7 +720,13 @@ func (zkm *ZkManager) GetConfig(ns string) (string, error) {
 		}
 	}
 	cfg := map[string]interface{}{}
-	json.Unmarshal(data, &cfg)
+	err = json.Unmarshal(data, &cfg)
+	if err != nil {
+		panic(err)
+	}
 	data, err = json.Marshal(cfg)
+	if err != nil {
+		panic(err)
+	}
 	return string(data), nil
 }
