@@ -14,7 +14,10 @@ func (s *Service) DebugSetLogLevel(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	bodyJSON := map[string]interface{}{}
-	json.Unmarshal(body, &bodyJSON)
+	err = json.Unmarshal(body, &bodyJSON)
+	if err != nil {
+		panic(err)
+	}
 	logLevel := 0
 	// Get log level
 	if n, logLevelSet := bodyJSON["logLevel"]; logLevelSet {

@@ -19,4 +19,3 @@ const (
 )
 
 type value interface{}
-type rawEvent map[string]value

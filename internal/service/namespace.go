@@ -32,7 +32,10 @@ func (s *Service) NamespaceGetConfig(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	bodyJSON := map[string]interface{}{}
-	json.Unmarshal(body, &bodyJSON)
+	err = json.Unmarshal(body, &bodyJSON)
+	if err != nil {
+		panic(err)
+	}
 
 	n, namespaceSet := bodyJSON["namespace"]
 	if !namespaceSet {
@@ -53,7 +56,10 @@ func (s *Service) NamespaceGetConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	data, _ := json.Marshal(res)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Service) NamespaceSetConfig(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +68,10 @@ func (s *Service) NamespaceSetConfig(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	bodyJSON := map[string]interface{}{}
-	json.Unmarshal(body, &bodyJSON)
+	err = json.Unmarshal(body, &bodyJSON)
+	if err != nil {
+		panic(err)
+	}
 
 	overwriteIfExists := false
 	namespaceConfig := map[string]interface{}{}
@@ -95,7 +104,10 @@ func (s *Service) NamespaceSetConfig(w http.ResponseWriter, r *http.Request) {
 			res.Err = err.Error()
 			data, _ := json.Marshal(res)
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(data)
+			_, werr := w.Write(data)
+			if werr != nil {
+				panic(err)
+			}
 			return
 		}
 	}
@@ -105,8 +117,10 @@ func (s *Service) NamespaceSetConfig(w http.ResponseWriter, r *http.Request) {
 	s.Zkm.IngestConfigToZK(cfgData)
 	data, _ := json.Marshal(res)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
-	return
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Service) NamespaceDelete(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +129,10 @@ func (s *Service) NamespaceDelete(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	bodyJSON := map[string]interface{}{}
-	json.Unmarshal(body, &bodyJSON)
+	err = json.Unmarshal(body, &bodyJSON)
+	if err != nil {
+		panic(err)
+	}
 
 	n, namespaceSet := bodyJSON["namespace"]
 	if !namespaceSet {
@@ -134,7 +151,10 @@ func (s *Service) NamespaceDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	data, _ := json.Marshal(res)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +163,10 @@ func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	bodyJSON := map[string]interface{}{}
-	json.Unmarshal(body, &bodyJSON)
+	err = json.Unmarshal(body, &bodyJSON)
+	if err != nil {
+		panic(err)
+	}
 
 	namespace := ""
 	if n, namespaceSet := bodyJSON["namespace"]; namespaceSet {
@@ -169,5 +192,8 @@ func (s *Service) NamespaceGetInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	data, _ := json.Marshal(res)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }

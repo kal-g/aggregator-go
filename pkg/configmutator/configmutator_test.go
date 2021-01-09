@@ -76,6 +76,7 @@ func TestConfigMutator(t *testing.T) {
 	assert.ElementsMatch(t, ids, []int{1, 2})
 
 	assert.ElementsMatch(t, cm.C.Metrics[1].EventIDs, []int{1})
-	cm.AddEventID(1, 2)
+	err = cm.AddEventID(1, 2)
+	ct.AssertEqual(t, err, nil)
 	assert.ElementsMatch(t, cm.C.Metrics[1].EventIDs, []int{1, 2})
 }

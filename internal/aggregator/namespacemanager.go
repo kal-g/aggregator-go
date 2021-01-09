@@ -8,12 +8,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// NamespaceMetadata encapsulates user relevant metadata about the namespace
 type NamespaceMetadata struct {
 	KeySizeMap map[int]int `json:"metric_keys"`
 }
 
-// NamespaceManager manages namespace access and metadata
 type NamespaceManager struct {
 	EventConfigsByNamespace  map[string]map[int]*eventConfig
 	MetricConfigsByNamespace map[string]map[int]*metricConfig
@@ -30,7 +28,6 @@ var nsLogger zerolog.Logger = zerolog.New(os.Stderr).With().
 	Timestamp().
 	Logger()
 
-// NSMFromRaw creates a namespace manager from a byte stream
 func NewNSM(storage AbstractStorage, updateMetadataChan chan<- string) NamespaceManager {
 
 	nsm := NamespaceManager{
@@ -56,7 +53,10 @@ func (nsm *NamespaceManager) ClearNamespaceData() {
 
 func (nsm *NamespaceManager) SetNamespaceFromData(data []byte) {
 	var doc map[string]interface{}
-	json.Unmarshal(data, &doc)
+	err := json.Unmarshal(data, &doc)
+	if err != nil {
+		panic(err)
+	}
 	// Extract namespace
 	ns := doc["namespace"].(string)
 
@@ -219,12 +219,4 @@ func (nsm *NamespaceManager) namespaceRLock(ns string) {
 
 func (nsm *NamespaceManager) namespaceRUnlock(ns string) {
 	nsm.NsDataLck.RUnlock()
-}
-
-func (nsm *NamespaceManager) namespaceWLock(ns string) {
-	nsm.NsDataLck.Lock()
-}
-
-func (nsm *NamespaceManager) namespaceUnlock(ns string) {
-	nsm.NsDataLck.Unlock()
 }

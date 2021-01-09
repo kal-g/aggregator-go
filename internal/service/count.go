@@ -19,14 +19,17 @@ func (s *Service) Count(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	bodyJSON := map[string]interface{}{}
-	json.Unmarshal(body, &bodyJSON)
+	err = json.Unmarshal(body, &bodyJSON)
+	if err != nil {
+		panic(err)
+	}
 
 	namespace := ""
 	if n, namespaceSet := bodyJSON["namespace"]; namespaceSet {
-		nString, isString := n.(string)
-		if !isString {
+		nString, _ := n.(string)
+		/*if !isString {
 			// TODO Return error
-		}
+		}*/
 		namespace = nString
 	}
 
@@ -47,7 +50,10 @@ func (s *Service) Count(w http.ResponseWriter, r *http.Request) {
 		}
 		data, _ := json.Marshal(res)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+		_, err = w.Write(data)
+		if err != nil {
+			panic(err)
+		}
 		return
 	}
 
@@ -67,7 +73,10 @@ func (s *Service) Count(w http.ResponseWriter, r *http.Request) {
 		}
 		data, _ := json.Marshal(res)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+		_, err = w.Write(data)
+		if err != nil {
+			panic(err)
+		}
 		return
 	}
 
@@ -76,7 +85,10 @@ func (s *Service) Count(w http.ResponseWriter, r *http.Request) {
 	data, _ := json.Marshal(countRes)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Service) doCount(metricKey int, metricID int, namespace string) agg.MetricCountResult {

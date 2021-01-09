@@ -45,7 +45,10 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 	data, _ := json.Marshal(consumeRes)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Service) doConsume(payload map[string]interface{}, namespace string) error {
