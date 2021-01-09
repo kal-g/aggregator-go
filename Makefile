@@ -46,6 +46,10 @@ start_agg:
 	-docker rm $(NODE_NAME)
 	docker run -e REDIS_URL=redis:6379 -e ZOOKEEPER_URL=zk:2181 -e NODE_NAME=$(NODE_NAME) --network=agg --name $(NODE_NAME) -p $(NODE_PORT):50051 kalgg/aggregator-go:local
 
+dev:
+	-docker rm -f agg
+	docker run -e REDIS_URL=redis:6379 -e ZOOKEEPER_URL=zk:2181 -e NODE_NAME=agg --network=agg --name agg -p 50051:50051 kalgg/aggregator-go:local
+
 docker_run_all: start_net start_redis start_zk start_agg
 
 run: all

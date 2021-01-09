@@ -18,7 +18,10 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	bodyJSON := map[string]interface{}{}
-	json.Unmarshal(body, &bodyJSON)
+	err = json.Unmarshal(body, &bodyJSON)
+	if err != nil {
+		panic(err)
+	}
 
 	// Check options
 	namespace := ""
@@ -48,7 +51,6 @@ func (s *Service) Consume(w http.ResponseWriter, r *http.Request) {
 func (s *Service) doConsume(payload map[string]interface{}, namespace string) error {
 	// Since we're unmarshalling into an interface, unmarshal converts to floats
 	// Convert the floats to ints
-	logger.Info().Msgf("DoConsume\n")
 	sanitizedPayload := map[string]interface{}{}
 	for k, v := range payload {
 		vAsFloat, isFloat := v.(float64)

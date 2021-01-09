@@ -48,16 +48,17 @@ func (e Engine) HandleRawEvent(rawEvent map[string]interface{}, namespace string
 	}
 	// Check namespace
 	e.Nsm.NsDataLck.RLock()
+	defer e.Nsm.NsDataLck.RUnlock()
 	if _, nsExists := e.Nsm.ActiveNamespaces[namespace]; !nsExists {
 		return &NamespaceNotFoundError{}
 	}
-	e.Nsm.NsDataLck.RUnlock()
 	res := e.handleEvent(*event, namespace)
 	return res
 }
 
 func (e Engine) handleEvent(event event, namespace string) error {
 	e.Nsm.namespaceRLock(namespace)
+	defer e.Nsm.namespaceRUnlock(namespace)
 	// Get the metric configs for this event
 	metricConfigs := e.getMetricConfigs(event, namespace)
 	if len(metricConfigs) == 0 {
@@ -71,7 +72,6 @@ func (e Engine) handleEvent(event event, namespace string) error {
 			e.Nsm.IncrementNumKeys(namespace, metricConfig.ID)
 		}
 	}
-	e.Nsm.namespaceRUnlock(namespace)
 	return nil
 }
 
