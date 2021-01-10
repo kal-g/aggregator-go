@@ -2,7 +2,7 @@ FROM golang:1.15.0
 
 COPY aggregator-go aggregator-go
 WORKDIR aggregator-go
-RUN make
+RUN mkdir -p bin && go build -o bin/aggregator cmd/aggregator/main.go
 
 EXPOSE 50051
 
