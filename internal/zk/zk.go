@@ -85,7 +85,6 @@ func MakeNewZkManager(zkURL string, nodeName string, nsm *agg.NamespaceManager, 
 	zkm.ingestConfigsToZK(configFiles)
 	// TODO Wait for watch nodes init
 	time.Sleep(2 * time.Second)
-	zkm.DistributeNamespaces()
 	return zkm
 }
 
