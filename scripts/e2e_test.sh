@@ -12,7 +12,7 @@ export ZOOKEEPER_URL="localhost:2181"
 ./bin/aggregator --config "config/aggregator_configs/global" --config "config/aggregator_configs/test" &>bin/writer_logs &
 aggPid=$!
 trap end EXIT
-sleep 5
+sleep 10
 echo "Starting test"
 
 namespaceInfo=`curl -sS --header "Content-Type: application/json" --request POST --data '{"namespace":"test"}' http://localhost:50051/namespace/get_info`
