@@ -36,7 +36,7 @@ jobs:
           name: Deploy to Host RPI 1
           command: |
             TAG=0.1.$CIRCLE_BUILD_NUM
-            ssh -o ubuntu@kal.gg "kubectl set image deployment/agg agg=$IMAGE_NAME:$TAG"
+            ssh ubuntu@kal.gg "kubectl set image deployment/agg agg=$IMAGE_NAME:$TAG"
   build_e2e_test:
     executor: docker-publisher
     steps:
